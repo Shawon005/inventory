@@ -40,5 +40,7 @@
     <script src="{{ asset('js/functions.js?v=' . $asset_v) }}"></script>
     @yield('javascript')
 </body>
-
+<script async
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyACtMl0u5b8sU_6M5JqMlKRLNgdn_hvKQc&libraries=places&callback=initGoogleMaps">
+</script>
 </html>

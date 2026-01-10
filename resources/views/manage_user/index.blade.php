@@ -35,6 +35,7 @@
                             <th>@lang( 'user.name' )</th>
                             <th>@lang( 'user.role' )</th>
                             <th>@lang( 'business.email' )</th>
+                            <th>@lang( 'lang_v1.location' )</th>
                             <th>@lang( 'messages.action' )</th>
                         </tr>
                     </thead>
@@ -47,11 +48,38 @@
     	aria-labelledby="gridSystemModalLabel">
     </div>
 
+    <!-- Location Map Modal -->
+    <div class="modal fade" id="location_map_modal" tabindex="-1" role="dialog" aria-labelledby="locationMapModalLabel">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    <h4 class="modal-title" id="locationMapModalLabel">@lang('lang_v1.user_location') - <span id="modal_user_name"></span></h4>
+                </div>
+                <div class="modal-body">
+                    <div id="user_location_map" style="height: 450px; width: 100%;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">@lang('messages.close')</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </section>
 <!-- /.content -->
 @stop
 @section('javascript')
+@php
+    $api_key = env('GOOGLE_MAP_API_KEY', 'AIzaSyCHN4k8-SIkVpHGWUgqW3laDbCkPY6BIa0');
+@endphp
+<script src="https://maps.googleapis.com/maps/api/js?key={{ $api_key }}&libraries=places" async defer></script>
 <script type="text/javascript">
+    var userLocationMap;
+    var userLocationMarker;
+
     //Roles table
     $(document).ready( function(){
         var users_table = $('#users_table').DataTable({
@@ -60,7 +88,7 @@
                     fixedHeader:false,
                     ajax: '/users',
                     columnDefs: [ {
-                        "targets": [4],
+                        "targets": [4, 5],
                         "orderable": false,
                         "searchable": false
                     } ],
@@ -69,6 +97,7 @@
                         {"data":"full_name"},
                         {"data":"role"},
                         {"data":"email"},
+                        {"data":"location"},
                         {"data":"action"}
                     ]
                 });
@@ -100,9 +129,70 @@
                 }
              });
         });
-        
+
+        // Handle location map modal
+        $('#location_map_modal').on('show.bs.modal', function (event) {
+            var button = $(event.relatedTarget);
+            var latitude = parseFloat(button.data('latitude'));
+            var longitude = parseFloat(button.data('longitude'));
+            var userName = button.data('user');
+
+            $('#modal_user_name').text(userName);
+
+            // Wait for Google Maps to load
+            if (typeof google !== 'undefined' && typeof google.maps !== 'undefined') {
+                initUserLocationMap(latitude, longitude);
+            } else {
+                // If Google Maps is not loaded yet, wait for it
+                var checkGoogleMaps = setInterval(function() {
+                    if (typeof google !== 'undefined' && typeof google.maps !== 'undefined') {
+                        clearInterval(checkGoogleMaps);
+                        initUserLocationMap(latitude, longitude);
+                    }
+                }, 100);
+            }
+        });
+
+        function initUserLocationMap(latitude, longitude) {
+            var mapOptions = {
+                center: { lat: latitude, lng: longitude },
+                zoom: 15,
+                mapTypeId: google.maps.MapTypeId.ROADMAP
+            };
+
+            // Initialize map
+            userLocationMap = new google.maps.Map(document.getElementById('user_location_map'), mapOptions);
+
+            // Add marker
+            userLocationMarker = new google.maps.Marker({
+                position: { lat: latitude, lng: longitude },
+                map: userLocationMap,
+                title: `@lang("lang_v1.user_location")`,
+                animation: google.maps.Animation.DROP
+            });
+
+            // Add info window
+            var infoWindow = new google.maps.InfoWindow({
+                content: '<div><strong>@lang("lang_v1.user_location")</strong><br>Lat: ' + latitude + '<br>Lng: ' + longitude + '</div>'
+            });
+
+            userLocationMarker.addListener('click', function() {
+                infoWindow.open(userLocationMap, userLocationMarker);
+            });
+
+            // Open info window by default
+            infoWindow.open(userLocationMap, userLocationMarker);
+        }
+
+        // Clean up map when modal is closed
+        $('#location_map_modal').on('hidden.bs.modal', function () {
+            if (userLocationMap) {
+                userLocationMap = null;
+            }
+            if (userLocationMarker) {
+                userLocationMarker = null;
+            }
+        });
     });
-    
-    
 </script>
 @endsection

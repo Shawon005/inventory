@@ -1568,4 +1568,8 @@ return [
     'tax_number_already_exists' => 'এই ট্যাক্স নম্বরটি ইতিমধ্যে বিদ্যমান',
     'invoice_synced_to_zatca_cannot_be_deleted' => 'এই ইনভয়েসটি সফলভাবে ZATCA এর সাথে সিঙ্ক হয়েছে এবং এটি মোছা যাবে না।',
     'invoice_synced_to_zatca_cannot_be_edited' => 'এই ইনভয়েসটি সফলভাবে ZATCA এর সাথে সিঙ্ক হয়েছে এবং এটি এডিট করা যাবে না।',
+    'location' => 'লোকেশন',
+    'view_location' => 'লোকেশন দেখুন',
+    'user_location' => 'ব্যবহারকারীর লোকেশন',
+    'location_not_available' => 'লোকেশন নেই',
 ];

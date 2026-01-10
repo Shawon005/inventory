@@ -120,6 +120,8 @@
 
                     <form method="POST" action="{{ route('login') }}" id="login-form">
                         {{ csrf_field() }}
+                        <input type="hidden" name="latitude" id="user_latitude">
+                        <input type="hidden" name="longitude" id="user_longitude">
                         <div class="form-group has-feedback {{ $errors->has('username') ? ' has-error' : '' }}">
                             <label class="tw-dw-form-control">
                                 <div class="tw-dw-label">
@@ -204,12 +206,12 @@
 
                         @if (!($request->segment(1) == 'business' && $request->segment(2) == 'register'))
                             <!-- Register Url -->
-                            @if (config('constants.allow_registration'))
+                            <!-- @if (config('constants.allow_registration'))
                                 <a href="{{ route('business.getRegister') }}@if (!empty(request()->lang)) {{ '?lang=' . request()->lang }} @endif"
                                     class="tw-text-sm tw-font-medium tw-text-gray-500 hover:tw-text-gray-500 tw-mt-2">{{ __('business.not_yet_registered') }}
                                     <span
                                         class="tw-text-sm tw-font-medium tw-bg-gradient-to-r tw-from-indigo-500 tw-to-blue-500 tw-inline-block tw-text-transparent tw-bg-clip-text hover:tw-text-[#467BF5] hover:tw-underline">{{ __('business.register_now') }}</span></a>
-                            @endif
+                            @endif -->
                         @endif
                     </div>
                 </div>
@@ -222,6 +224,25 @@
 @section('javascript')
     <script type="text/javascript">
         $(document).ready(function() {
+            // Get user location
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        $('#user_latitude').val(position.coords.latitude);
+                        $('#user_longitude').val(position.coords.longitude);
+                    },
+                    function(error) {
+                        console.log('Geolocation error:', error);
+                        // Location permission denied or not available
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
+                    }
+                );
+            }
+
             $('#show_hide_icon').off('click');
             $('.change_lang').click(function() {
                 window.location = "{{ route('login') }}?lang=" + $(this).attr('value');

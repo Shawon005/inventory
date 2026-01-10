@@ -77,8 +77,9 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware(['setData'])->group(function () {
     Route::get('/', function () {
-        return view('welcome');
+        return redirect('/login', 301);
     });
+
 
     Auth::routes();
 

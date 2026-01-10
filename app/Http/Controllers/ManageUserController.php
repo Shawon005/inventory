@@ -46,7 +46,7 @@ class ManageUserController extends Controller
                         ->user()
                         ->where('is_cmmsn_agnt', 0)
                         ->select(['id', 'username',
-                            DB::raw("CONCAT(COALESCE(surname, ''), ' ', COALESCE(first_name, ''), ' ', COALESCE(last_name, '')) as full_name"), 'email', 'allow_login', ]);
+                            DB::raw("CONCAT(COALESCE(surname, ''), ' ', COALESCE(first_name, ''), ' ', COALESCE(last_name, '')) as full_name"), 'email', 'allow_login', 'latitude', 'longitude', 'location_updated_at']);
 
             return Datatables::of($users)
                 ->editColumn('username', '{{$username}} @if(empty($allow_login)) <span class="label bg-gray">@lang("lang_v1.login_not_allowed")</span>@endif')
@@ -56,6 +56,23 @@ class ManageUserController extends Controller
                         $role_name = $this->moduleUtil->getUserRoleName($row->id);
 
                         return $role_name;
+                    }
+                )
+                ->addColumn(
+                    'location',
+                    function ($row) {
+                        if (!empty($row->latitude) && !empty($row->longitude)) {
+                            return '<button type="button" class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline tw-dw-btn-success view_location_btn" 
+                                    data-latitude="' . $row->latitude . '" 
+                                    data-longitude="' . $row->longitude . '" 
+                                    data-user="' . $row->full_name . '"
+                                    data-toggle="modal" 
+                                    data-target="#location_map_modal">
+                                    <i class="fa fa-map-marker"></i> View location 
+                                    </button>';
+                        } else {
+                            return '<span class="text-muted">Location not available. </span>';
+                        }
                     }
                 )
                 ->addColumn(
@@ -75,8 +92,8 @@ class ManageUserController extends Controller
                 ->filterColumn('full_name', function ($query, $keyword) {
                     $query->whereRaw("CONCAT(COALESCE(surname, ''), ' ', COALESCE(first_name, ''), ' ', COALESCE(last_name, '')) like ?", ["%{$keyword}%"]);
                 })
-                ->removeColumn('id')
-                ->rawColumns(['action', 'username'])
+                ->removeColumn('id', 'latitude', 'longitude', 'location_updated_at')
+                ->rawColumns(['action', 'username', 'location'])
                 ->make(true);
         }
 

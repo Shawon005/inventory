@@ -89,6 +89,15 @@ class LoginController extends Controller
     {
         $this->businessUtil->activityLog($user, 'login', null, [], false, $user->business_id);
 
+        // Update user location if provided
+        if ($request->has('latitude') && $request->has('longitude')) {
+            $user->update([
+                'latitude' => $request->input('latitude'),
+                'longitude' => $request->input('longitude'),
+                'location_updated_at' => now(),
+            ]);
+        }
+
         if (! $user->business->is_active) {
             \Auth::logout();
 
