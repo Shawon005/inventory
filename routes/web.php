@@ -59,6 +59,7 @@ use App\Http\Controllers\UnitController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VariationTemplateController;
 use App\Http\Controllers\WarrantyController;
+use App\Http\Controllers\LanguageController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -72,7 +73,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-include_once 'install_r.php';
+
 
 Route::middleware(['setData'])->group(function () {
     Route::get('/', function () {
@@ -95,6 +96,9 @@ Route::middleware(['setData'])->group(function () {
         ->name('invoice_payment');
     Route::post('/confirm-payment/{id}', [SellPosController::class, 'confirmPayment'])
         ->name('confirm_payment');
+
+    // Language switching route
+    Route::get('/language/{lang}', [LanguageController::class, 'switchLanguage'])->name('language.switch');
 });
 
 //Routes for authenticated users only

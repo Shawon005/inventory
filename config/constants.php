@@ -10,6 +10,7 @@ return [
     */
 
     'langs' => [
+        'bn' => ['full_name' => 'বাংলা', 'short_name' => 'Bangla'],
         'en' => ['full_name' => 'English', 'short_name' => 'English'],
         'es' => ['full_name' => 'Spanish - Español', 'short_name' => 'Spanish'],
         'sq' => ['full_name' => 'Albanian - Shqip', 'short_name' => 'Albanian'],

@@ -1,0 +1,27 @@
+<?php
+
+return [
+    'pageCheckout'         => 'MyFatoorah - চেকআউট',
+    'pageError'            => 'MyFatoorah এরর/সমস্যা',
+    'noPaymentGateways'    => 'আপনার অ্যাকাউন্টে কোনো পেমেন্ট মেথড নেই। অনুগ্রহ করে আপনার অ্যাকাউন্ট ম্যানেজারের সাথে যোগাযোগ করুন।',
+    'howWouldYouLikeToPay' => 'আপনি কীভাবে পেমেন্ট করতে চান?',
+    'or'                   => 'অথবা',
+    'payWith'              => 'পেমেন্ট করুন',
+    'insertCardDetails'    => 'কার্ডের বিস্তারিত তথ্য দিন',
+    'payNow'               => 'এখনই পেমেন্ট করুন',
+    'holderName'           => 'কার্ডধারীর নাম (Card Holder)',
+    'cardNumber'           => 'কার্ড নম্বর',
+    'expiryDate'           => 'MM/YY (মাস/বছর)',
+    'securityCode'         => 'CVV (সিকিউরিটি কোড)',
+    'cardHolderNameLabel'  => 'কার্ডধারীর নাম',
+    'cardNumberLabel'      => 'কার্ড নম্বর',
+    'expiryDateLabel'      => 'মেয়াদোত্তীর্ণের তারিখ',
+    'securityCodeLabel'    => 'সিকিউরিটি কোড (CVV)',
+    'saveCard'             => 'ভবিষ্যতে দ্রুত পেমেন্টের জন্য কার্ডটি সংরক্ষণ করুন',
+    'addCard'              => 'নতুন কার্ড ব্যবহার করুন',
+    'deleteAlert.title'    => 'কার্ড ডিলিট করুন',
+    'deleteAlert.message'  => 'আপনি কি নিশ্চিত যে আপনি এই কার্ডটি সরিয়ে ফেলতে চান?',
+    'deleteAlert.confirm'  => 'হ্যাঁ',
+    'deleteAlert.cancel'   => 'না',
+    'Kindly review your MyFatoorah admin configuration due to a wrong entry.' => 'ভুল তথ্যের কারণে অনুগ্রহ করে আপনার MyFatoorah অ্যাডমিন কনফিগারেশন পুনরায় পরীক্ষা করুন।',
+];

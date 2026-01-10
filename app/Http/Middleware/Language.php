@@ -16,7 +16,7 @@ class Language
      */
     public function handle($request, Closure $next)
     {
-        $locale = config('app.locale');
+        $locale = config('app.locale'); // Default is 'bn'
         if ($request->session()->has('user.language')) {
             $locale = $request->session()->get('user.language');
         }

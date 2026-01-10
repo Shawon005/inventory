@@ -95,6 +95,7 @@ class LocationSettingsController extends Controller
             $output = ['success' => 1,
                 'msg' => __('receipt.receipt_settings_updated'),
             ];
+
         } catch (\Exception $e) {
             $output = ['success' => 0,
                 'msg' => __('messages.something_went_wrong'),
