@@ -243,8 +243,11 @@
 
                 @include('layouts.partials.header-notifications')
 
-                <a  class="sm:tw-inline-flex tw-transition-all tw-duration-200 tw-gap-2 tw-bg-primary-800 hover:tw-bg-primary-700 tw-py-1.5 tw-px-3 tw-rounded-lg tw-items-center tw-justify-center tw-text-sm tw-font-medium tw-ring-1 tw-ring-white/10 hover:tw-text-white tw-text-white" href="http://techorbit.from99.com/" target="_blank">E-commerce</a>
-                <a  class="sm:tw-inline-flex tw-transition-all tw-duration-200 tw-gap-2 tw-bg-primary-800 hover:tw-bg-primary-700 tw-py-1.5 tw-px-3 tw-rounded-lg tw-items-center tw-justify-center tw-text-sm tw-font-medium tw-ring-1 tw-ring-white/10 hover:tw-text-white tw-text-white" href="http://techorbit.from99.com/admin/login" target="_blank">E-commerce Admin</a>
+                <div class="tw-hidden md:tw-block">
+                    <a  class="sm:tw-inline-flex tw-transition-all tw-duration-200 tw-gap-2 tw-bg-primary-800 hover:tw-bg-primary-700 tw-py-1.5 tw-px-3 tw-rounded-lg tw-items-center tw-justify-center tw-text-sm tw-font-medium tw-ring-1 tw-ring-white/10 hover:tw-text-white tw-text-white" href="http://techorbit.from99.com/" target="_blank">E-commerce</a>
+                    <a  class="sm:tw-inline-flex tw-transition-all tw-duration-200 tw-gap-2 tw-bg-primary-800 hover:tw-bg-primary-700 tw-py-1.5 tw-px-3 tw-rounded-lg tw-items-center tw-justify-center tw-text-sm tw-font-medium tw-ring-1 tw-ring-white/10 hover:tw-text-white tw-text-white" href="http://techorbit.from99.com/admin/login" target="_blank">E-commerce Admin</a>
+                </div>
+               
                 <details class="tw-dw-dropdown tw-relative tw-inline-block tw-text-left">
                     <summary data-toggle="popover"
                         class="tw-dw-m-1 tw-inline-flex tw-transition-all tw-ring-1 tw-ring-white/10 tw-cursor-pointer tw-duration-200 tw-bg-@if(!empty(session('business.theme_color'))){{session('business.theme_color')}}@else{{'primary'}}@endif-800 hover:tw-bg-@if(!empty(session('business.theme_color'))){{session('business.theme_color')}}@else{{'primary'}}@endif-700 tw-py-1.5 tw-px-3 tw-rounded-lg tw-items-center tw-justify-center tw-text-sm tw-font-medium tw-text-white hover:tw-text-white tw-gap-1">
@@ -280,6 +283,30 @@
                                     <path d="M6.168 18.849a4 4 0 0 1 3.832 -2.849h4a4 4 0 0 1 3.834 2.855" />
                                 </svg>
                                 @lang('lang_v1.profile')
+                            </a>
+                        </li>
+                        <li class="tw-block md:tw-hidden">
+                            <a href="http://techorbit.from99.com/"
+                                class="tw-flex tw-items-center tw-gap-2 tw-px-3 tw-py-2 tw-text-sm tw-font-medium tw-text-gray-600 tw-transition-all tw-duration-200 tw-rounded-lg hover:tw-text-gray-900 hover:tw-bg-gray-100"
+                                role="menuitem" tabindex="-1">
+                                <svg height="20px" width="20px" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" 
+                                xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 513.34 513.34" xml:space="preserve" fill="#0d0d0d" 
+                                stroke="#0d0d0d"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" 
+                                stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> 
+                                    <polygon points="145.916,151.76 105.452,32 0.668,32 0.668,0 128.42,0 176.228,141.512 "></polygon> 
+                                    <polygon style="fill:#0d0d0d;" points="68.292,124.888 512.668,124.888 427.964,362.536 142.292,362.536 "></polygon> 
+                                    <circle cx="378.108" cy="451.712" r="61.624"></circle> <circle cx="192.244" cy="451.712" r="61.624"></circle> </g>
+                                </svg>
+                               E-commerce
+                            </a>
+                        </li>
+                        <li class="tw-block md:tw-hidden"> 
+                            <a href="https://techorbit.from99.com/admin/login"
+                                class="tw-flex tw-items-center tw-gap-2 tw-px-3 tw-py-2 tw-text-sm tw-font-medium tw-text-gray-600 tw-transition-all tw-duration-200 tw-rounded-lg hover:tw-text-gray-900 hover:tw-bg-gray-100"
+                                role="menuitem" tabindex="-1">
+                                <svg height="20px" width="20px" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="-51.33 -51.33 616.00 616.00" xml:space="preserve" fill="#000000"><g id="SVGRepo_bgCarrier" stroke-width="0"><rect x="-51.33" y="-51.33" width="616.00" height="616.00" rx="308" fill="#7e8081" strokewidth="0"></rect></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <polygon points="145.916,151.76 105.452,32 0.668,32 0.668,0 128.42,0 176.228,141.512 "></polygon> <polygon style="fill:#ffffff;" points="68.292,124.888 512.668,124.888 427.964,362.536 142.292,362.536 "></polygon> <circle cx="378.108" cy="451.712" r="61.624"></circle> 
+                                <circle cx="192.244" cy="451.712" r="61.624"></circle> </g></svg>
+                               E-Com Admin
                             </a>
                         </li>
                         <li>
