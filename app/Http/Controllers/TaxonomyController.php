@@ -92,7 +92,7 @@ class TaxonomyController extends Controller
                     if (!empty($row->parent_name)) {
                         return $row->parent_name . ' -> ' . $row->name;
                     }
-                    return $row->name;
+                     return $row->name;
                 })
                 ->removeColumn('id')
                 ->removeColumn('parent_id')

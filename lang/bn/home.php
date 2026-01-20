@@ -11,7 +11,7 @@ return [
     |
     */
     'home' => 'হোম',
-    'welcome_message' => 'স্বাগতম :name, 👋',
+    'welcome_message' => 'স্বাগতম :name',
     'total_sell' => 'মোট বিক্রয়',
     'total_purchase' => 'মোট ক্রয়',
     'invoice_due' => 'ইনভয়েস বকেয়া',

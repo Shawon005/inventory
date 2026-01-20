@@ -134,12 +134,24 @@ class HomeController extends Controller
 
         if (! empty($location_sells)) {
             foreach ($location_sells as $location_sell) {
-                $sells_chart_1->dataset($location_sell['loc_label'], 'line', $location_sell['values']);
+                $sells_chart_1->dataset($location_sell['loc_label'], 'area', $location_sell['values']) ;
             }
         }
 
         if (count($all_locations) > 1) {
-            $sells_chart_1->dataset(__('report.all_locations'), 'line', $all_sell_values);
+            $sells_chart_1->dataset(__('report.all_locations'), 'area', $all_sell_values)
+            ->color('#F7941D')
+            ->options([
+                'threshold' => null,
+                'fillColor' => [
+                    'linearGradient' => [ 'x1' => 0, 'y1' => 0, 'x2' => 0, 'y2' => 1 ],
+                    'stops' => [
+                        [0, 'rgba(247,148,29,0.6)'],
+                        [1, 'rgba(247,148,29,0.05)']
+                    ]
+                ]
+            ]);
+
         }
 
         $labels = [];
@@ -189,11 +201,21 @@ class HomeController extends Controller
                             )));
         if (! empty($fy_sells_by_location_data)) {
             foreach ($fy_sells_by_location_data as $location_sell) {
-                $sells_chart_2->dataset($location_sell['loc_label'], 'line', $location_sell['values']);
+                $sells_chart_2->dataset($location_sell['loc_label'], 'area', $location_sell['values']);
             }
         }
         if (count($all_locations) > 1) {
-            $sells_chart_2->dataset(__('report.all_locations'), 'line', $values);
+            $sells_chart_2->dataset(__('report.all_locations'), 'area', $values)->color('#F7941D')
+            ->options([
+                'threshold' => null,
+                'fillColor' => [
+                    'linearGradient' => [ 'x1' => 0, 'y1' => 0, 'x2' => 0, 'y2' => 1 ],
+                    'stops' => [
+                        [0, 'rgba(247,148,29,0.6)'],
+                        [1, 'rgba(247,148,29,0.05)']
+                    ]
+                ]
+            ]);;
         }
 
         //Get Dashboard widgets from module
@@ -506,10 +528,19 @@ class HomeController extends Controller
     private function __chartOptions($title)
     {
         return [
+            'chart' => [
+                'backgroundColor' => '#000f' // chart background
+            ],
+            'plotOptions' => [
+                'area' => [
+                    'fillOpacity' => 1
+                ]
+            ],
             'yAxis' => [
                 'title' => [
                     'text' => $title,
-                ],
+                  
+                ],    
             ],
             'legend' => [
                 'align' => 'right',
@@ -517,6 +548,9 @@ class HomeController extends Controller
                 'floating' => true,
                 'layout' => 'vertical',
                 'padding' => 20,
+                'itemStyle' => [
+                    'color' => '#ffffff'
+                ]
             ],
         ];
     }

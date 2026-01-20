@@ -17,12 +17,14 @@
 
         function initializeTaxonomyDataTable() {
             //Category table
+            const subS='-&gt;'
             if ($('#category_table').length) {
                 var category_type = $('#category_type').val();
                 category_table = $('#category_table').DataTable({
                     processing: true,
                     serverSide: true,
                     fixedHeader:false,
+                    
                     ajax: '/taxonomies?type=' + category_type,
                     columns: [
                         { data: 'name', name: 'name', orderable: false, searchable: false },
@@ -32,6 +34,12 @@
                         { data: 'description', name: 'description', orderable: false, searchable: false },
                         { data: 'action', name: 'action', orderable: false, searchable: false},
                     ],
+                    rowCallback: function(row, data){
+                        if((data.name).indexOf(subS)== -1){
+                            console.log(data.name)
+                            $('td:eq(0)', row).css('background','#a34c00');
+                        }
+                    },
                 });
             }
         }
