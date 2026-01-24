@@ -242,12 +242,15 @@
                 </button>
 
                 @include('layouts.partials.header-notifications')
-
+               <!-- dd(auth()->user()->hasRole('Admin#' . auth()->user()->business_id)); -->
+              
                 <div class="tw-hidden md:tw-block">
                     <a  class="sm:tw-inline-flex tw-transition-all tw-duration-200 tw-gap-2 tw-bg-primary-800 hover:tw-bg-primary-700 tw-py-1.5 tw-px-3 tw-rounded-lg tw-items-center tw-justify-center tw-text-sm tw-font-medium tw-ring-1 tw-ring-white/10 hover:tw-text-white tw-text-white" href="http://techorbit.from99.com/" target="_blank">E-commerce</a>
+                        @if (auth()->user()->hasRole('Admin#' . auth()->user()->business_id))
                     <a  class="sm:tw-inline-flex tw-transition-all tw-duration-200 tw-gap-2 tw-bg-primary-800 hover:tw-bg-primary-700 tw-py-1.5 tw-px-3 tw-rounded-lg tw-items-center tw-justify-center tw-text-sm tw-font-medium tw-ring-1 tw-ring-white/10 hover:tw-text-white tw-text-white" href="http://techorbit.from99.com/admin/login" target="_blank">E-commerce Admin</a>
+                        @endif
                 </div>
-               
+             
                 <details class="tw-dw-dropdown tw-relative tw-inline-block tw-text-left">
                     <summary data-toggle="popover"
                         class="tw-dw-m-1 tw-inline-flex tw-transition-all tw-ring-1 tw-ring-white/10 tw-cursor-pointer tw-duration-200 tw-bg-@if(!empty(session('business.theme_color'))){{session('business.theme_color')}}@else{{'primary'}}@endif-800 hover:tw-bg-@if(!empty(session('business.theme_color'))){{session('business.theme_color')}}@else{{'primary'}}@endif-700 tw-py-1.5 tw-px-3 tw-rounded-lg tw-items-center tw-justify-center tw-text-sm tw-font-medium tw-text-white hover:tw-text-white tw-gap-1">
