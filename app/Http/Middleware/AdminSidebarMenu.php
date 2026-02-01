@@ -447,6 +447,33 @@ class AdminSidebarMenu
                 )->order(35);
             }
 
+            // Distribution dropdown (Customer Management, Stock Transfers, GPS Tracking)
+            if (auth()->user()->can('customer.view') || auth()->user()->can('customer.create')) {
+                $menu->dropdown(
+                    'Distribution',
+                    function ($sub) {
+                        if (auth()->user()->can('customer.view') || auth()->user()->can('customer.create')) {
+                            $sub->url(
+                                action([\App\Http\Controllers\Distribution\CustomerController::class, 'index']),
+                                'Distribution Customers',
+                                ['icon' => '', 'active' => request()->segment(1) == 'distribution' && request()->segment(2) == 'customers']
+                            );
+                        }
+                        $sub->url(
+                            route('distribution.stock-transfers.index'),
+                            'Transfer to Customer',
+                            ['icon' => '', 'active' => request()->segment(1) == 'distribution' && request()->segment(2) == 'stock-transfers']
+                        );
+                        $sub->url(
+                            route('distribution.tracking.index'),
+                            'GPS Tracking',
+                            ['icon' => '', 'active' => request()->segment(1) == 'distribution' && request()->segment(2) == 'tracking']
+                        );
+                    },
+                    ['icon' => '<svg xmlns="http://www.w3.org/2000/svg" class="tw-size-5 tw-shrink-0" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none"><path d="M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"></path><path d="M12 12m-8 0a8 8 0 1 0 16 0a8 8 0 1 0 -16 0"></path></svg>']
+                )->order(36);
+            }
+
             //stock adjustment dropdown
             if (in_array('stock_adjustment', $enabled_modules) && (auth()->user()->can('purchase.view') || auth()->user()->can('purchase.create') || auth()->user()->can('view_own_purchase'))) {
                 $menu->dropdown(

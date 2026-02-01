@@ -50,6 +50,11 @@ return [
             'driver' => 'session',
             'provider' => 'contacts',
         ],
+
+        'customer_api' => [
+            'driver' => 'sanctum',
+            'provider' => 'customers',
+        ],
     ],
 
     /*
@@ -78,6 +83,11 @@ return [
         'contacts' => [
             'driver' => 'eloquent',
             'model' => App\Contact::class,
+        ],
+
+        'customers' => [
+            'driver' => 'eloquent',
+            'model' => App\Customer::class,
         ],
 
         // 'users' => [

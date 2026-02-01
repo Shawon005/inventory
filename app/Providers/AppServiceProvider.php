@@ -244,7 +244,22 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        //
+        $this->app->bind(
+            \App\Repositories\Contracts\CustomerRepositoryInterface::class,
+            \App\Repositories\CustomerRepository::class
+        );
+        $this->app->bind(
+            \App\Repositories\Contracts\CustomerStockRepositoryInterface::class,
+            \App\Repositories\CustomerStockRepository::class
+        );
+        $this->app->bind(
+            \App\Repositories\Contracts\CustomerSaleRepositoryInterface::class,
+            \App\Repositories\CustomerSaleRepository::class
+        );
+        $this->app->bind(
+            \App\Repositories\Contracts\CustomerLocationRepositoryInterface::class,
+            \App\Repositories\CustomerLocationRepository::class
+        );
     }
 
     /**

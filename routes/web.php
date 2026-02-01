@@ -51,6 +51,9 @@ use App\Http\Controllers\SellPosController;
 use App\Http\Controllers\SellReturnController;
 use App\Http\Controllers\StockAdjustmentController;
 use App\Http\Controllers\StockTransferController;
+use App\Http\Controllers\Distribution\CustomerController as DistributionCustomerController;
+use App\Http\Controllers\Distribution\CustomerStockTransferController;
+use App\Http\Controllers\Distribution\CustomerTrackingController;
 use App\Http\Controllers\TaxonomyController;
 use App\Http\Controllers\TaxRateController;
 use App\Http\Controllers\TransactionPaymentController;
@@ -364,6 +367,15 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::get('stock-transfers/print/{id}', [StockTransferController::class, 'printInvoice']);
     Route::post('stock-transfers/update-status/{id}', [StockTransferController::class, 'updateStatus']);
     Route::resource('stock-transfers', StockTransferController::class);
+
+    // Distribution - Customer Management & Stock Transfers
+    Route::resource('distribution/customers', DistributionCustomerController::class);
+    Route::get('distribution/stock-transfers', [CustomerStockTransferController::class, 'index'])->name('distribution.stock-transfers.index');
+    Route::get('distribution/stock-transfers/create', [CustomerStockTransferController::class, 'create'])->name('distribution.stock-transfers.create');
+    Route::post('distribution/stock-transfers', [CustomerStockTransferController::class, 'store'])->name('distribution.stock-transfers.store');
+    Route::get('distribution/tracking', [CustomerTrackingController::class, 'index'])->name('distribution.tracking.index');
+    Route::get('distribution/tracking/locations', [CustomerTrackingController::class, 'getLocations'])->name('distribution.tracking.locations');
+    Route::get('distribution/tracking/latest', [CustomerTrackingController::class, 'getLatestLocation'])->name('distribution.tracking.latest');
 
     Route::get('/opening-stock/add/{product_id}', [OpeningStockController::class, 'add']);
     Route::post('/opening-stock/save', [OpeningStockController::class, 'save']);
