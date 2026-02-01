@@ -3,8 +3,7 @@
 @section('title', __('sale.pos_sale'))
 
 @section('content')
-    <section class="content no-print">
-        
+    <section class="content no-print"> 
         <input type="hidden" id="amount_rounding_method" value="{{ $pos_settings['amount_rounding_method'] ?? '' }}">
         @if (!empty($pos_settings['allow_overselling']))
             <input type="hidden" id="is_overselling_allowed">

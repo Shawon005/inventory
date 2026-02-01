@@ -122,6 +122,14 @@
                 </label>@show_tooltip(__('tooltip.enable_stock')) <p class="help-block"><i>@lang('product.enable_stock_help')</i></p>
             </div>
         </div>
+        <div class="col-sm-4">
+            <div class="form-group">
+                <br>
+                <label>
+                    {!! Form::checkbox('free_item', 1, !empty($duplicate_product) ? $duplicate_product->free_item : false, ['class' => 'input-icheck']); !!} <strong>Free Item</strong>
+                </label>@show_tooltip(__('For every 12 items sold, 1 free item is added automatically'))
+            </div>
+        </div>
         <div class="col-sm-4 @if(!empty($duplicate_product) && $duplicate_product->enable_stock == 0) hide @endif" id="alert_quantity_div">
             <div class="form-group">
                 {!! Form::label('alert_quantity', __('product.alert_quantity') . ':') !!} @show_tooltip(__('tooltip.alert_quantity'))

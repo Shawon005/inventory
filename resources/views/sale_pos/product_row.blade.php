@@ -121,6 +121,11 @@
 				--
 			@endif
 		</small>
+		
+		
+		@if($product->free_item) 
+			<br><small class="text-success">Free items: <span class="free_item_qty">0</span></small>
+		@endif
 
 		<!-- Description modal end -->
 		@if(in_array('modifiers' , $enabled_modules))
@@ -417,3 +422,4 @@
 		<i class="fa fa-times text-danger pos_remove_row cursor-pointer" aria-hidden="true"></i>
 	</td>
 </tr>
+

@@ -1,6 +1,5 @@
 <div class="box box-widget">
 	<div class="box-header with-border">
-
 	@if(!empty($categories))
 		<select class="select2" id="product_category" style="width:45% !important">
 

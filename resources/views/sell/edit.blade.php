@@ -360,7 +360,7 @@
 						</thead>
 						<tbody>
 							@foreach($sell_details as $sell_line)
-								@include('sale_pos.product_row', ['product' => $sell_line, 'row_count' => $loop->index, 'tax_dropdown' => $taxes, 'sub_units' => !empty($sell_line->unit_details) ? $sell_line->unit_details : [], 'action' => 'edit', 'is_direct_sell' => true, 'so_line' => $sell_line->so_line, 'is_sales_order' => $transaction->type == 'sales_order', 'is_serial_no' => true])
+								@include('sale_pos.product_row', ['product' => $sell_line, 'row_count' => $loop->index, 'tax_dropdown' => $taxes, 'sub_units' => !empty($sell_line->unit_details) ? $sell_line->unit_details : [], 'action' => 'edit', 'is_direct_sell' => true, 'so_line' => $sell_line->so_line, 'is_sales_order' => $transaction->type == 'sales_order', 'is_serial_no' => true, 'pos_settings' => $pos_settings, 'enabled_modules' => $enabled_modules ?? [], 'discount' => null, 'waiters' => $waiters, 'edit_discount' => $edit_discount, 'edit_price' => $edit_price, 'warranties' => $warranties, 'quantity' => $sell_line->quantity_ordered, 'last_sell_line' => null, 'purchase_line_id' => null])
 							@endforeach
 						</tbody>
 					</table>

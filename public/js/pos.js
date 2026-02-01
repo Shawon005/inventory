@@ -2,6 +2,7 @@ var global_brand_id = null;
 var global_p_category_id = null;
 var global_is_clear_local_storage = false;
 $(document).ready(function() {
+   
     customer_set = false;
     //Prevent enter key function except texarea
     $('form').on('keyup keypress', function(e) {
@@ -335,6 +336,12 @@ $(document).ready(function() {
         pos_total_row();
 
         adjustComboQty(tr);
+
+        //Update free item quantity
+        if (tr.find('.free_item_qty').length > 0) {
+            var free_qty = Math.floor(entered_qty / 12);
+            tr.find('.free_item_qty').text(free_qty);
+        }
     });
 
     //If change in unit price update price including tax and line total
@@ -1793,6 +1800,13 @@ function pos_product_row(variation_id = null, purchase_line_id = null, weighing_
                         .last();
                     pos_each_row(this_row);
 
+                    //Update free item quantity
+                    var qty = __read_number(this_row.find('input.pos_quantity'));
+                    var free_qty = Math.floor(qty / 12);
+                    if (this_row.find('.free_item_qty').length > 0) {
+                        this_row.find('.free_item_qty').text(free_qty);
+                    }
+
                     //For initial discount if present
                     var line_total = __read_number(this_row.find('input.pos_line_total'));
                     this_row.find('span.pos_line_total_text').text(line_total);
@@ -1831,6 +1845,10 @@ function pos_product_row(variation_id = null, purchase_line_id = null, weighing_
 
                     //scroll bottom of items list
                     $(".pos_product_div").animate({ scrollTop: $('.pos_product_div').prop("scrollHeight")}, 1000);
+
+                    if (result.message) {
+                        toastr.success(result.message);
+                    }
                 } else {
                     toastr.error(result.msg);
                     if (!$('#__is_mobile').length) {

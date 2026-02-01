@@ -494,6 +494,27 @@ class SellPosController extends Controller
 
                 $transaction = $this->transactionUtil->createSellTransaction($business_id, $input, $invoice_total, $user_id);
 
+                // Add free items
+                $free_items = [];
+                foreach ($input['products'] as $product) {
+                    $variation = Variation::find($product['variation_id']);
+                    $prod = Product::find($variation->product_id);
+                    if ($prod->free_item) {
+                        $free_quantity = floor($product['quantity'] / 12);
+                        if ($free_quantity > 0) {
+                            $free_item = $product;
+                            $free_item['quantity'] = $free_quantity;
+                            $free_item['unit_price'] = 0;
+                            $free_item['unit_price_inc_tax'] = 0;
+                            $free_item['line_discount_amount'] = 0;
+                            $free_item['item_tax'] = 0;
+                            $free_item['sell_line_note'] = 'Free Item';
+                            $free_items[] = $free_item;
+                        }
+                    }
+                }
+                $input['products'] = array_merge($input['products'], $free_items);
+
                 //Upload Shipping documents
                 Media::uploadMedia($business_id, $transaction, $request, 'shipping_documents', false, 'shipping_document');
 
@@ -1108,6 +1129,8 @@ class SellPosController extends Controller
         $users = config('constants.enable_contact_assign') ? User::forDropdown($business_id, false, false, false, true) : [];
         $only_payment = request()->segment(2) == 'payment';
 
+        $default_location = $business_location;
+
         return view('sale_pos.edit')
             ->with(compact('business_details', 'taxes', 'payment_types', 'walk_in_customer',
                 'sell_details', 'transaction', 'payment_lines', 'location_printer_type', 'shortcuts',
@@ -1115,7 +1138,7 @@ class SellPosController extends Controller
                 'brands', 'accounts', 'waiters', 'redeem_details', 'edit_price', 'edit_discount',
                 'shipping_statuses', 'warranties', 'sub_type', 'pos_module_data', 'invoice_schemes',
                 'default_invoice_schemes', 'invoice_layouts', 'featured_products', 'customer_due',
-                'users', 'only_payment'));
+                'users', 'only_payment', 'default_location'));
     }
 
     /**
@@ -1807,6 +1830,15 @@ class SellPosController extends Controller
 
             $output = $this->getSellLineRow($variation_id, $location_id, $quantity, $row_count, $is_direct_sell, $is_serial_no);
 
+            // Check for free item message
+            $variation = Variation::find($variation_id);
+            $product = Product::find($variation->product_id);
+            
+            if ($product->free_item && $quantity >= 12) {
+                $free_count = floor($quantity / 12);
+                $output['message'] = "You got {$free_count} free item(s)!";
+            }
+
             if ($this->transactionUtil->isModuleEnabled('modifiers') && !$is_direct_sell) {
                 $variation = Variation::find($variation_id);
                 $business_id = request()->session()->get('user.business_id');
@@ -1825,7 +1857,7 @@ class SellPosController extends Controller
             $output['success'] = false;
             $output['msg'] = __('lang_v1.item_out_of_stock');
         }
-
+        //dd( $output);
         return $output;
     }
 
@@ -2053,6 +2085,7 @@ class SellPosController extends Controller
                 'p.id as product_id',
                 'p.name',
                 'p.type',
+                'p.free_item',
                 'p.enable_stock',
                 'p.image as product_image',
                 'variations.id',
@@ -2076,7 +2109,7 @@ class SellPosController extends Controller
             }
 
             $show_prices = !empty($pos_settings['show_pricing_on_product_sugesstion']);
-
+           
             return view('sale_pos.partials.product_list')
                 ->with(compact('products', 'allowed_group_prices', 'show_prices'));
         }
