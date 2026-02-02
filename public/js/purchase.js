@@ -241,6 +241,16 @@ $(document).ready(function() {
                     }
                 },
                 select: function(event, ui) {
+                    var location_id = $('#location_id').val();
+                    if (!location_id) {
+                        swal({
+                            title: LANG.required,
+                            text: __translate('please_select_location'),
+                            icon: 'warning'
+                        });
+                        $(this).val(null);
+                        return false;
+                    }
                     $(this).val(null);
                     get_purchase_entry_row(ui.item.product_id, ui.item.variation_id);
                 },
@@ -796,8 +806,23 @@ function get_purchase_entry_row(product_id, variation_id) {
             dataType: 'html',
             data: data,
             success: function(result) {
-                append_purchase_lines(result, row_count);
+                if (result && result.trim().length > 0) {
+                    append_purchase_lines(result, row_count);
+                } else {
+                    swal({
+                        title: LANG.attention,
+                        text: 'Unable to add product. Please try again.',
+                        icon: 'warning'
+                    });
+                }
             },
+            error: function(xhr, status, error) {
+                swal({
+                    title: LANG.attention,
+                    text: 'Error adding product: ' + error,
+                    icon: 'error'
+                });
+            }
         });
     }
 }

@@ -401,7 +401,9 @@
 								<th class="text-center"><i class="fas fa-times" aria-hidden="true"></i></th>
 							</tr>
 						</thead>
-						<tbody></tbody>
+						<tbody>
+							
+						</tbody>
 					</table>
 					</div>
 					<div class="table-responsive">

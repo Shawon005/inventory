@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Repositories;
-
+use Illuminate\Support\Collection;
 use App\CustomerStock;
 use App\Repositories\Contracts\CustomerStockRepositoryInterface;
 
@@ -14,7 +14,7 @@ class CustomerStockRepository implements CustomerStockRepositoryInterface
             ->first();
     }
 
-    public function getCustomerStocks(int $customerId)
+    public function getCustomerStocks(int $customerId): Collection
     {
         return CustomerStock::where('customer_id', $customerId)
             ->with(['product', 'product.unit'])

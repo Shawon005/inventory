@@ -1028,6 +1028,7 @@ class PurchaseController extends Controller
     public function getPurchaseEntryRow(Request $request)
     {
         if (request()->ajax()) {
+           
             $product_id = $request->input('product_id');
             $variation_id = $request->input('variation_id');
             $business_id = request()->session()->get('user.business_id');
@@ -1041,7 +1042,7 @@ class PurchaseController extends Controller
             }
 
             $currency_details = $this->transactionUtil->purchaseCurrencyDetails($business_id);
-
+          
             if (! empty($product_id)) {
                 $row_count = $request->input('row_count');
                 $product = Product::where('id', $product_id)
@@ -1054,7 +1055,9 @@ class PurchaseController extends Controller
                                 ->with([
                                     'product_variation',
                                     'variation_location_details' => function ($q) use ($location_id) {
-                                        $q->where('location_id', $location_id);
+                                        if (!empty($location_id)) {
+                                            $q->where('location_id', $location_id);
+                                        }
                                     },
                                 ]);
                 if ($variation_id !== '0') {
@@ -1092,10 +1095,13 @@ class PurchaseController extends Controller
     {
         $query = PurchaseLine::join('transactions as t', 'purchase_lines.transaction_id',
                         '=', 't.id')
-                        ->where('t.location_id', $location_id)
                         ->where('t.type', 'purchase')
                         ->where('t.status', 'received')
                         ->where('purchase_lines.variation_id', $variation_id);
+
+        if (!empty($location_id)) {
+            $query->where('t.location_id', $location_id);
+        }
 
         if (! empty($supplier_id)) {
             $query = $query->where('t.contact_id', '=', $supplier_id);

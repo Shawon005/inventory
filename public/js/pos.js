@@ -1789,10 +1789,28 @@ function pos_product_row(variation_id = null, purchase_line_id = null, weighing_
             },
             dataType: 'json',
             success: function(result) {
+                console.log('get_product_row response:', result);
+                console.log($('table#pos_table tbody'));
                 if (result.success) {
-                    $('table#pos_table tbody')
-                        .append(result.html_content)
-                        .find('input.pos_quantity');
+                    if (!result.html_content || result.html_content.trim() === '') {
+                        console.error('Empty html_content in response');
+                    } else if ($('table#pos_table tbody').length === 0) {
+                        // tbody missing — try to create it if table exists
+                        if ($('table#pos_table').length == 0) {
+                            console.warn('pos_table exists but tbody missing — creating tbody');
+                            $('table#pos_table').append('<tbody></tbody>');
+                            $('table#pos_table tbody').append(result.html_content);
+                            console.log('Appended html_content to newly created tbody');
+                        } else {
+                            console.error('pos_table not found in DOM');
+                            toastr.error(LANG.pos_table_not_found || 'POS table not found on page');
+                        }
+                    } else {
+                        $('table#pos_table tbody')
+                            .append(result.html_content)
+                            .find('input.pos_quantity');
+                        console.log('Appended html_content to pos_table tbody');
+                    }
                     //increment row count
                     $('input#product_row_count').val(parseInt(product_row) + 1);
                     var this_row = $('table#pos_table tbody')
@@ -3332,10 +3350,10 @@ function saveFormDataToLocalStorage() {
 
     let form = $('form#add_pos_sell_form'); // Select the form by ID
     // Check if the form exists in the DOM
-    if (form.length === 0) {
-        console.error("Error: Form #add_pos_sell_form not found.");
-        return;
-    }
+    // if (form.length === 0) {
+    //     console.error("Error: Form #add_pos_sell_form not found.");
+    //     return;
+    // }
     // Serialize form data into an array of objects: [{name: 'input_name', value: 'input_value'}, ...]
     let formArray = form.serializeArray();
 

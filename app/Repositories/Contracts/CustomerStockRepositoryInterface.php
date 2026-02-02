@@ -3,6 +3,7 @@
 namespace App\Repositories\Contracts;
 
 use App\CustomerStock;
+use Illuminate\Support\Collection;
 
 interface CustomerStockRepositoryInterface
 {

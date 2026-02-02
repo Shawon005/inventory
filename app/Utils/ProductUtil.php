@@ -460,6 +460,9 @@ class ProductUtil extends Util
      */
     public function getDetailsFromVariation($variation_id, $business_id, $location_id = null, $check_qty = true)
     {
+        if($location_id=='undefined'){
+            $location_id=null;
+       }
         $variation = Variation::with('media')->findOrFail($variation_id);
 
         $query = Variation::join('products AS p', 'variations.product_id', '=', 'p.id')
@@ -554,7 +557,7 @@ class ProductUtil extends Util
 
             $product->combo_products = $this->calculateComboDetails($location_id, $product->combo_variations);
         }
-
+       
         return $product;
     }
 

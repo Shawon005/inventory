@@ -9,10 +9,12 @@ use Illuminate\Http\Request;
 
 class CustomerController extends Controller
 {
-    protected $customerRepository;
+    
+    // protected $customerRepository;
 
-    public function __construct(CustomerRepositoryInterface $customerRepository)
+    public function __construct(CustomerRepositoryInterface $customerRepository )
     {
+        
         $this->customerRepository = $customerRepository;
     }
 
@@ -33,6 +35,7 @@ class CustomerController extends Controller
 
     public function create()
     {
+       
         if (! auth()->user()->can('customer.create')) {
             abort(403, 'Unauthorized action.');
         }
