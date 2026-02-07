@@ -19,12 +19,37 @@
                     <a href="{{ action([\App\Http\Controllers\Distribution\CustomerController::class, 'edit'], [$customer->id]) }}" class="btn btn-primary">Edit</a>
                 </div>
             </div>
+            <div class="box">
+                <div class="box-header"><h3>Sale Summary</h3></div>
+                <div class="box-body">
+                    <table class="table table-bordered table-striped  dataTable" id="products-table" dataID="{{$customer->id}}">
+                        <thead><tr><th>Resaler name</th><th>items</th><th>Qty</th><th>Purchase Price</th><th>Date</th></tr></thead>
+                        <tbody>
+                            @forelse($customer->sales as $sale)
+                            <tr>
+                                <td>{{ $sale->sold_to ?? '-' }}</td>
+                                <td>
+                                    @foreach(json_decode($sale->items) as $item)
+                                    <span>{{$item->name}} -- ×{{$item->quantity}} --  {{$item->sale_price}}৳</span><br>
+                                    @endforeach
+                                </td>
+                                <td>{{ number_format($sale->quantity,2)}}</td>
+                                <td>{{ number_format($sale->sale_price, 2) }}</td>
+                                <td>{{ $sale->created_at }}</td>
+                            </tr>
+                            @empty
+                            <tr><td colspan="3">No Sell</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
         <div class="col-md-6">
             <div class="box">
                 <div class="box-header"><h3>Stock Summary</h3></div>
                 <div class="box-body">
-                    <table class="table table-bordered">
+                    <table class="table table-bordered table-striped">
                         <thead><tr><th>Product</th><th>Qty</th><th>Purchase Price</th></tr></thead>
                         <tbody>
                             @forelse($customer->stocks as $stock)

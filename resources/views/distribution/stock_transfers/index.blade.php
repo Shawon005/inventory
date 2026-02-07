@@ -29,6 +29,7 @@
                         <th>Price</th>
                         <th>Total</th>
                         <th>By</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -41,6 +42,16 @@
                         <td>{{ number_format($transfer->transfer_price, 2) }}</td>
                         <td>{{ number_format($transfer->total_amount, 2) }}</td>
                         <td>{{ $transfer->createdBy->user_full_name ?? '-' }}</td>
+                        <td>
+                            <div class="btn-group">
+                                <a href="{{ route('distribution.stock-transfers.edit', $transfer->id) }}" class="btn btn-xs btn-primary">
+                                    <i class="fa fa-edit"></i> Edit
+                                </a>
+                                <a href="{{ route('distribution.stock-transfers.destroy', $transfer->id) }}" class="btn btn-xs btn-danger" onclick="return confirm('Are you sure?')">
+                                    <i class="fa fa-trash"></i> Delete
+                                </a>
+                            </div>
+                        </td>
                     </tr>
                     @endforeach
                 </tbody>

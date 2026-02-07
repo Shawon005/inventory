@@ -374,6 +374,9 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::get('distribution/stock-transfers/create', [CustomerStockTransferController::class, 'create'])->name('distribution.stock-transfers.create');
     Route::post('distribution/stock-transfers', [CustomerStockTransferController::class, 'store'])->name('distribution.stock-transfers.store');
     Route::get('distribution/tracking', [CustomerTrackingController::class, 'index'])->name('distribution.tracking.index');
+    Route::get('distribution/stock-transfers/{id}/edit', [CustomerStockTransferController::class, 'edit'])->name('distribution.stock-transfers.edit');
+    Route::put('distribution/stock-transfers/{id}', [CustomerStockTransferController::class, 'update'])->name('distribution.stock-transfers.update');
+    Route::get('distribution/stock-transfers/{id}', [CustomerStockTransferController::class, 'destroy'])->name('distribution.stock-transfers.destroy');
     Route::get('distribution/tracking/locations', [CustomerTrackingController::class, 'getLocations'])->name('distribution.tracking.locations');
     Route::get('distribution/tracking/latest', [CustomerTrackingController::class, 'getLatestLocation'])->name('distribution.tracking.latest');
 

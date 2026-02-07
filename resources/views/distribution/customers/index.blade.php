@@ -14,7 +14,7 @@
     @endif
     <div class="box">
         <div class="box-header">
-            <a href="{{ action([\App\Http\Controllers\Distribution\CustomerController::class, 'create']) }}" class="btn btn-primary">
+            <a href="{{ action([\App\Http\Controllers\Distribution\CustomerController::class, 'create']) }}" class="tw-dw-btn tw-bg-gradient-to-r tw-from-indigo-600 tw-to-blue-500 tw-font-bold tw-text-white tw-border-none tw-rounded-full pull-right">
                 <i class="fa fa-plus"></i> Add Customer
             </a>
         </div>

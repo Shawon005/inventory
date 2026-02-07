@@ -42,6 +42,12 @@ class Customer extends Authenticatable
     /**
      * Get the business that owns the customer.
      */
+
+    public function contact()
+    {
+        return $this->belongsTo(\App\Contact::class, 'contact_id');
+    }
+    
     public function business()
     {
         return $this->belongsTo(Business::class);

@@ -158,7 +158,8 @@ $(document).ready(function() {
 
     set_default_customer();
 
-    if ($('#search_product').length) {
+    // Only initialize POS autocomplete if we're on a POS page (not a purchase page)
+    if ($('#search_product').length && $('#pos_table').length) {
         //Add Product
         $('#search_product')
             .autocomplete({
@@ -634,7 +635,7 @@ $(document).ready(function() {
 
     //Finalize without showing payment options
     $('button.pos-express-finalize').click(function() {
-
+        
         //Check if product is present or not.
         if ($('table#pos_table tbody').find('.product_row').length <= 0) {
             toastr.warning(LANG.no_products_added);

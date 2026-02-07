@@ -11,6 +11,7 @@ class CustomerSaleResource extends JsonResource
         return [
             'id' => $this->id,
             'product_id' => $this->product_id,
+            'items'=>json_decode($this->items),
             'product_name' => $this->product->name ?? null,
             'quantity' => (float) $this->quantity,
             'purchase_price' => (float) $this->purchase_price,

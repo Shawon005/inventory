@@ -43,6 +43,39 @@ class CustomerController extends Controller
         return view('distribution.customers.create');
     }
 
+    // public function store(Request $request)
+    // {
+    //     if (! auth()->user()->can('customer.create')) {
+    //         abort(403, 'Unauthorized action.');
+    //     }
+
+    //     $request->validate([
+    //         'name' => 'required|string|max:255',
+    //         'phone' => 'required|string|max:50',
+    //         'email' => 'required|email|unique:customers,email',
+    //         'password' => 'required|min:8|confirmed',
+    //         'address' => 'nullable|string',
+    //         'status' => 'in:active,inactive',
+    //     ]);
+
+    //     $business_id = request()->session()->get('user.business_id');
+
+    //     $this->customerRepository->create([
+    //         'business_id' => $business_id,
+    //         'name' => $request->name,
+    //         'phone' => $request->phone,
+    //         'email' => $request->email,
+    //         'password' => bcrypt($request->password),
+    //         'address' => $request->address,
+    //         'status' => $request->status ?? 'active',
+    //         'created_by' => auth()->id(),
+    //     ]);
+
+    //     $output = ['success' => true, 'msg' => __('lang_v1.success')];
+
+    //     return redirect()->action([\App\Http\Controllers\Distribution\CustomerController::class, 'index'])->with('status', $output);
+    // }
+
     public function store(Request $request)
     {
         if (! auth()->user()->can('customer.create')) {
@@ -50,36 +83,48 @@ class CustomerController extends Controller
         }
 
         $request->validate([
-            'name' => 'required|string|max:255',
-            'phone' => 'required|string|max:50',
-            'email' => 'required|email|unique:customers,email',
+            'name' => 'required_without:contact_id|string|max:255',
+            'phone' => 'required_without:contact_id|string|max:50',
+            'email' => 'required_without:contact_id|email|unique:customers,email',
             'password' => 'required|min:8|confirmed',
             'address' => 'nullable|string',
             'status' => 'in:active,inactive',
+            'contact_id' => 'nullable|exists:contacts,id',
         ]);
 
         $business_id = request()->session()->get('user.business_id');
 
-        $this->customerRepository->create([
+        $data = [
             'business_id' => $business_id,
-            'name' => $request->name,
-            'phone' => $request->phone,
-            'email' => $request->email,
             'password' => bcrypt($request->password),
             'address' => $request->address,
             'status' => $request->status ?? 'active',
             'created_by' => auth()->id(),
-        ]);
+        ];
+
+        if ($request->filled('contact_id')) {
+            $contact = \App\Contact::find($request->contact_id);
+
+            $data['contact_id'] = $contact->id;
+            $data['name'] = $contact->name;
+            $data['phone'] = $contact->mobile ?? $request->phone;
+            $data['email'] = $contact->email ?? $request->email;
+        } else {
+            $data['name'] = $request->name;
+            $data['phone'] = $request->phone;
+            $data['email'] = $request->email;
+        }
+
+        $this->customerRepository->create($data);
 
         $output = ['success' => true, 'msg' => __('lang_v1.success')];
 
         return redirect()->action([\App\Http\Controllers\Distribution\CustomerController::class, 'index'])->with('status', $output);
     }
-
     public function show($id)
     {
         $customer = Customer::with(['stocks.product', 'sales.product'])->findOrFail($id);
-
+        // dd($customer);
         if ($customer->business_id != request()->session()->get('user.business_id')) {
             abort(403, 'Unauthorized action.');
         }

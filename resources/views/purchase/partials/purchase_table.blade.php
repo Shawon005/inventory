@@ -1,5 +1,5 @@
 <table class="table table-bordered table-striped ajax_view" id="purchase_table" style="width: 100%;">
-    <thead>
+    <thead> 
         <tr>
             <th>@lang('messages.action')</th>
             <th>@lang('messages.date')</th>

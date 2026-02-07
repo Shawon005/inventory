@@ -581,9 +581,9 @@ class SellPosController extends Controller
                                     $product['combo'],
                                     $input['location_id']
                                 );
-                        }
+                        }   
                     }
-
+                    $this->autoTransferStockToDistributionCustomer($transaction);
                     //Add payments to Cash Register
                     if (!$is_direct_sale && !$transaction->is_suspend && !empty($input['payment']) && !$is_credit_sale) {
                         $this->cashRegisterUtil->addSellPayments($transaction, $input['payment']);
@@ -3293,6 +3293,65 @@ class SellPosController extends Controller
 
             return $output;
 
+        }
+    }
+
+/**
+ * Auto-transfer products to distribution customer when sale is finalized
+ * 
+ * @param Transaction $transaction
+ * @return void
+ */
+    private function autoTransferStockToDistributionCustomer($transaction)
+    {
+    
+        try {
+            // Find distribution customer linked to this contact via contact_id
+            $distributionCustomer = \App\Customer::where('contact_id', $transaction->contact_id)
+                ->first();
+
+            if (!$distributionCustomer) {
+                // No linked distribution customer, skip
+                return;
+            }
+
+            // Get the transfer service
+            $transferService = app(\App\Services\CustomerStockTransferService::class);
+
+            // Transfer each sold product to distribution customer
+            foreach ($transaction->sell_lines as $sellLine) {
+                if (!$sellLine->product->enable_stock) {
+                    // Skip products without stock tracking
+                    continue;
+                }
+
+                try {
+                    $variationId = $sellLine->variation_id;
+                    if (!$variationId) {
+                        $variation = \App\Variation::where('product_id', $sellLine->product_id)->first();
+                        $variationId = $variation ? $variation->id : null;
+                    }
+
+                    if (!$variationId) {
+                        continue; // Skip if no variation
+                    }
+
+                    $transferService->transfer([
+                        'customer_id' => $distributionCustomer->id,
+                        'product_id' => $sellLine->product_id,
+                        'variation_id' => $variationId,
+                        'location_id' => $transaction->location_id,
+                        'quantity' => $sellLine->quantity,
+                        'transfer_price' => $sellLine->unit_price,
+                        'created_by' => auth()->id(),
+                    ]);
+                } catch (\Exception $e) {
+                    // Log error but don't fail the sale
+                    \Log::warning('Failed to auto-transfer stock to distribution customer: ' . $e->getMessage());
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::warning('Error in autoTransferStockToDistributionCustomer: ' . $e->getMessage());
         }
     }
 }

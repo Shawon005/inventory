@@ -4,7 +4,7 @@ namespace App\Repositories;
 
 use App\CustomerSale;
 use App\Repositories\Contracts\CustomerSaleRepositoryInterface;
-
+use Illuminate\Support\Collection;
 class CustomerSaleRepository implements CustomerSaleRepositoryInterface
 {
     public function create(array $data): CustomerSale
@@ -12,7 +12,7 @@ class CustomerSaleRepository implements CustomerSaleRepositoryInterface
         return CustomerSale::create($data);
     }
 
-    public function getSalesByCustomer(int $customerId, ?string $fromDate = null, ?string $toDate = null)
+    public function getSalesByCustomer(int $customerId, ?string $fromDate = null, ?string $toDate = null): Collection
     {
         $query = CustomerSale::where('customer_id', $customerId)
             ->with(['product', 'product.unit'])
@@ -28,7 +28,7 @@ class CustomerSaleRepository implements CustomerSaleRepositoryInterface
         return $query->get();
     }
 
-    public function getSalesSummary(int $customerId, ?string $fromDate = null, ?string $toDate = null)
+    public function getSalesSummary(int $customerId, ?string $fromDate = null, ?string $toDate = null): Collection
     {
         $query = CustomerSale::where('customer_id', $customerId);
 

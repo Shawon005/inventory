@@ -25,11 +25,13 @@ class SaleController extends Controller
     public function sell(CustomerSellRequest $request): JsonResponse
     {
         try {
+            
             $sale = $this->customerSaleService->sell([
                 'customer_id' => auth()->id(),
-                'product_id' => $request->product_id,
-                'quantity' => $request->quantity,
+                'items' => $request->items,
                 'sale_price' => $request->sale_price,
+                'discount' => $request->discount,
+                'payment_method' => $request->payment_method,
                 'sold_to' => $request->sold_to,
             ]);
 

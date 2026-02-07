@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Repositories\Contracts;
-
+use Illuminate\Support\Collection;
 use App\CustomerLocation;
 
 interface CustomerLocationRepositoryInterface
@@ -12,5 +12,5 @@ interface CustomerLocationRepositoryInterface
 
     public function getLocationsByCustomerAndDate(int $customerId, string $date): \Illuminate\Support\Collection;
 
-    public function getLocationsByCustomerAndDateRange(int $customerId, string $fromDate, string $toDate): \Illuminate\Support\Collection;
+    public function getLocationsByCustomerAndDateRange(int $customerId, string $fromDate, string $toDate): Collection;
 }

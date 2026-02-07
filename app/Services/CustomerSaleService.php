@@ -23,40 +23,43 @@ class CustomerSaleService
     {
         return DB::transaction(function () use ($data) {
             $customerId = $data['customer_id'];
-            $productId = $data['product_id'];
-            $quantity = (float) $data['quantity'];
+            $items = $data['items'];
             $salePrice = (float) $data['sale_price'];
+            $discount = (float) $data['discount'];
             $soldTo = $data['sold_to'] ?? null;
-
-            $customerStock = $this->customerStockRepository->getStockByCustomerAndProduct($customerId, $productId);
-
-            if (! $customerStock || $customerStock->quantity < $quantity) {
-                throw new \Exception('Insufficient stock. Available: '.($customerStock->quantity ?? 0));
+            $paymentMethod = $data['payment_method'] ?? null;
+        
+            $sales = [];
+            $qu=0;
+            foreach ($items as $item) {
+                $productId = $item['product_id'];
+                $quantity = (float) $item['quantity'];
+        
+                $customerStock = $this->customerStockRepository
+                    ->getStockByCustomerAndProduct($customerId, $productId);
+        
+                // Decrease customer stock
+                $customerStock->decrement('quantity', $quantity);
+        
+                if ($customerStock->quantity <= 0) {
+                    $customerStock->delete();
+                }
+                $qu=$qu+$item['quantity'];
+                // Create sale record
+                
             }
 
-            $purchasePrice = $customerStock->purchase_price;
-            $profit = ($salePrice - $purchasePrice) * $quantity;
-
-            $variationId = $customerStock->variation_id;
-
-            // Decrease customer stock
-            $customerStock->decrement('quantity', $quantity);
-
-            if ($customerStock->quantity <= 0) {
-                $customerStock->delete();
-            }
-
-            // Create sale record
-            return $this->customerSaleRepository->create([
-                'customer_id' => $customerId,
-                'product_id' => $productId,
-                'variation_id' => $variationId,
-                'quantity' => $quantity,
-                'purchase_price' => $purchasePrice,
-                'sale_price' => $salePrice,
-                'profit' => $profit,
-                'sold_to' => $soldTo,
+            $sales = $this->customerSaleRepository->create([
+                'customer_id'     => $customerId,
+                'product_id'      => 1,
+                'quantity'        => $qu,
+                'items'           =>json_encode($items),
+                'sale_price'      => $salePrice,
+                'discount'        => $discount,
+                'payment_method'  => $paymentMethod,
+                'sold_to'         => $soldTo,
             ]);
+            return $sales; // return AFTER loop
         });
     }
 }

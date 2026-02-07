@@ -17,6 +17,7 @@ class CustomerDashboardResource extends JsonResource
             'total_stock_value' => round($totalStockValue, 2),
             'today_sales_count' => $this->resource->sales()->whereDate('created_at', today())->count(),
             'today_profit' => round($this->resource->sales()->whereDate('created_at', today())->sum('profit'), 2),
+            'today_sales' => round($this->resource->sales()->whereDate('created_at', today())->sum('sale_price'), 2),
         ];
     }
 }

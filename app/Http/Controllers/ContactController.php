@@ -933,6 +933,7 @@ class ContactController extends Controller
                 'contacts.id',
                 DB::raw("IF(contacts.contact_id IS NULL OR contacts.contact_id='', contacts.name, CONCAT(contacts.name, ' (', contacts.contact_id, ')')) AS text"),
                 'mobile',
+                'email',
                 'address_line_1',
                 'address_line_2',
                 'city',

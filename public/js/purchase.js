@@ -201,6 +201,11 @@ $(document).ready(function() {
 
     //Add products
     if ($('#search_product').length > 0) {
+        // Destroy any existing autocomplete (from pos.js) before reinitializing
+        if ($('#search_product').hasClass('ui-autocomplete-input')) {
+            $('#search_product').autocomplete('destroy');
+        }
+        
         $('#search_product')
             .autocomplete({
                 source: function(request, response) {

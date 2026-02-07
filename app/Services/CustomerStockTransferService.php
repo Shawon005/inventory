@@ -88,4 +88,41 @@ class CustomerStockTransferService
             ]);
         });
     }
+    public function reverseTransfer(CustomerStockTransfer $transfer): void
+    {
+        DB::transaction(function () use ($transfer) {
+            $productId = $transfer->product_id;
+            $variationId = $transfer->variation_id;
+            $locationId = $transfer->location_id;
+            $quantity = (float) $transfer->quantity;
+
+            // Restore main inventory
+            $vld = VariationLocationDetails::where('variation_id', $variationId)
+                ->where('product_id', $productId)
+                ->where('location_id', $locationId)
+                ->firstOrFail();
+
+            $vld->increment('qty_available', $quantity);
+
+            // Remove from customer stock
+            $customerStock = $this->customerStockRepository->getStockByCustomerAndProduct(
+                $transfer->customer_id,
+                $productId
+            );
+
+            if ($customerStock) {
+                $newQuantity = $customerStock->quantity - $quantity;
+                
+                if ($newQuantity <= 0) {
+                    // Delete if quantity becomes 0 or less
+                    $customerStock->delete();
+                } else {
+                    $customerStock->decrement('quantity', $quantity);
+                }
+            }
+
+            // Delete the transfer record
+            $transfer->delete();
+        });
+    }
 }

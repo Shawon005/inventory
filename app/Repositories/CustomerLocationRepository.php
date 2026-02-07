@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Repositories;
-
+use Illuminate\Support\Collection;
 use App\CustomerLocation;
 use App\Repositories\Contracts\CustomerLocationRepositoryInterface;
 
@@ -19,7 +19,7 @@ class CustomerLocationRepository implements CustomerLocationRepositoryInterface
             ->first();
     }
 
-    public function getLocationsByCustomerAndDate(int $customerId, string $date)
+    public function getLocationsByCustomerAndDate(int $customerId, string $date): Collection
     {
         return CustomerLocation::where('customer_id', $customerId)
             ->whereDate('recorded_at', $date)
@@ -27,7 +27,7 @@ class CustomerLocationRepository implements CustomerLocationRepositoryInterface
             ->get();
     }
 
-    public function getLocationsByCustomerAndDateRange(int $customerId, string $fromDate, string $toDate)
+    public function getLocationsByCustomerAndDateRange(int $customerId, string $fromDate, string $toDate): Collection
     {
         return CustomerLocation::where('customer_id', $customerId)
             ->whereBetween('recorded_at', [$fromDate, $toDate])
