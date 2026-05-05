@@ -37,6 +37,8 @@ class Customer extends Authenticatable
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'work_latitude' => 'float',
+        'work_longitude' => 'float',
     ];
 
     /**
@@ -91,6 +93,11 @@ class Customer extends Authenticatable
     public function locations()
     {
         return $this->hasMany(CustomerLocation::class);
+    }
+
+    public function attendances()
+    {
+        return $this->hasMany(CustomerAttendance::class);
     }
 
     /**

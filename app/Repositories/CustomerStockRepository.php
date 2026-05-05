@@ -17,7 +17,16 @@ class CustomerStockRepository implements CustomerStockRepositoryInterface
     public function getCustomerStocks(int $customerId): Collection
     {
         return CustomerStock::where('customer_id', $customerId)
-            ->with(['product', 'product.unit'])
+            ->with([
+                'product',
+                'product.category' => function ($query) {
+                    $query->withTrashed();
+                },
+                'product.sub_category' => function ($query) {
+                    $query->withTrashed();
+                },
+                'variation',
+            ])
             ->where('quantity', '>', 0)
             ->get();
     }

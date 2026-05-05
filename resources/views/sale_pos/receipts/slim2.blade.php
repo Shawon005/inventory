@@ -631,6 +631,16 @@
 						</p>
 					</div>
 				@endif
+				@if(isset($receipt_details->customer_total_due) && !empty($receipt_details->customer_total_due_label))
+					<div class="flex-box">
+						<p class="width-50 text-left">
+							{!! $receipt_details->customer_total_due_label !!}
+						</p>
+						<p class="width-50 text-right">
+							{{$receipt_details->customer_total_due}}
+						</p>
+					</div>
+				@endif
 
 				@if(!empty($receipt_details->all_due))
 					<div class="flex-box">

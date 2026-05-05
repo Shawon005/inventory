@@ -121,6 +121,60 @@ $(document).ready(function() {
             return markup;
         },
     });
+
+    window.is_sell_edit_screen = function() {
+        return $('form#edit_sell_form').length > 0 || $('form#edit_pos_sell_form').length > 0;
+    };
+
+    window.get_customer_auto_discount_percent = function(customer_data) {
+        var discount_percent = null;
+
+        if (typeof customer_data !== 'undefined' && customer_data !== null) {
+            if (customer_data.customer_discount_percent !== undefined && customer_data.customer_discount_percent !== null && customer_data.customer_discount_percent !== '') {
+                discount_percent = parseFloat(customer_data.customer_discount_percent);
+            } else if (customer_data.auto_discount_percent !== undefined && customer_data.auto_discount_percent !== null && customer_data.auto_discount_percent !== '') {
+                discount_percent = parseFloat(customer_data.auto_discount_percent);
+            } else if (customer_data.discount_percent !== undefined && customer_data.discount_percent !== null && customer_data.discount_percent !== '') {
+                discount_percent = parseFloat(customer_data.discount_percent);
+            }
+        }
+
+        if ((discount_percent === null || isNaN(discount_percent)) && $('select#customer_id').val() == $('#default_customer_id').val()) {
+            var default_discount_percent = $('#default_customer_discount_percent').val();
+            if (default_discount_percent !== '') {
+                discount_percent = parseFloat(default_discount_percent);
+            }
+        }
+
+        if (discount_percent === null || isNaN(discount_percent)) {
+            discount_percent = 0;
+        }
+
+        return Math.max(0, discount_percent);
+    };
+
+    window.apply_customer_discount = function(customer_data, force_apply) {
+        force_apply = force_apply || false;
+        if (is_sell_edit_screen() && !customer_set && !force_apply) {
+            return;
+        }
+        if (!$('input#discount_amount').length || !$('input#discount_type').length) {
+            return;
+        }
+
+        var customer_discount_percent = get_customer_auto_discount_percent(customer_data);
+        $('input#discount_type').val('percentage');
+        __write_number($('input#discount_amount'), customer_discount_percent);
+
+        if ($('select#discount_type_modal').length) {
+            $('select#discount_type_modal').val('percentage');
+        }
+        if ($('input#discount_amount_modal').length) {
+            __write_number($('input#discount_amount_modal'), customer_discount_percent);
+        }
+
+        pos_total_row();
+    };
     $('#customer_id').on('select2:select', function(e) {
         var data = e.params.data;
         if (data.pay_term_number) {
@@ -145,6 +199,7 @@ $(document).ready(function() {
             $('#price_group').val(data.selling_price_group_id);
             $('#price_group').change();
         }
+        apply_customer_discount(data);
         //  else {
         //     $('#price_group').val(0);
         //     $('#price_group').change();
@@ -157,14 +212,17 @@ $(document).ready(function() {
     });
 
     set_default_customer();
+    update_customer_total_due_display($('.contact_due_text').find('span').text());
 
     // Only initialize POS autocomplete if we're on a POS page (not a purchase page)
     if ($('#search_product').length && $('#pos_table').length) {
         //Add Product
+       
         $('#search_product')
             .autocomplete({
-                delay: 1000,
+                delay: 500,
                 source: function(request, response) {
+                    
                     var price_group = '';
                     var search_fields = [];
                     $('.search_fields:checked').each(function(i){
@@ -179,14 +237,14 @@ $(document).ready(function() {
                         {
                             price_group: price_group,
                             location_id: $('input#location_id').val(),
-                            term: request.term,
+                            term: request.term.length?request.term:0,
                             not_for_selling: 0,
                             search_fields: search_fields
                         },
                         response
                     );
                 },
-                minLength: 2,
+                minLength: 1,
                 response: function(event, ui) {
                     if (ui.content.length == 1) {
                         ui.item = ui.content[0];
@@ -1338,7 +1396,7 @@ $(document).ready(function() {
     });
 
     //Press enter on search product to jump into last quantty and vice-versa
-    $('#search_product').keydown(function(e) {
+    $('#search_product').focus(function(e) {  
         var key = e.which;
         if (key == 9) {
             // the tab key code
@@ -2072,6 +2130,7 @@ function calculate_balance_due() {
         });
     var bal_due = total_payable - total_paying;
     var change_return = 0;
+    var excess_to_advance = 0;
 
     //change_return
     if (bal_due < 0 || Math.abs(bal_due) < 0.05) {
@@ -2084,6 +2143,21 @@ function calculate_balance_due() {
         $('span.change_return_span').text(__currency_trans_from_en(0, true));
         change_return = 0;
         
+    }
+
+    if (change_return > 0 && $('input#add_change_return_to_advance').val() == '1') {
+        excess_to_advance = change_return;
+        __write_number($('input#change_return'), 0);
+        $('span.change_return_span').text(__currency_trans_from_en(0, true));
+        change_return = 0;
+    }
+
+    if ($('input#excess_to_advance').length) {
+        __write_number($('input#excess_to_advance'), excess_to_advance);
+    }
+
+    if ($('span#excess_to_advance_text').length) {
+        $('span#excess_to_advance_text').text(__currency_trans_from_en(excess_to_advance, true));
     }
 
     if (change_return !== 0) {
@@ -2102,6 +2176,35 @@ function calculate_balance_due() {
     __highlight(change_return * -1, $('span.change_return_span'));
     // store payment details
     saveFormDataToLocalStorage();
+}
+
+function total_paying_excluding_row(row) {
+    var total_paying = 0;
+    $('#payment_rows_div')
+        .find('.payment-amount')
+        .each(function() {
+            if (row.length && $(this)[0] === row.find('.payment-amount')[0]) {
+                return;
+            }
+            if (parseFloat($(this).val())) {
+                total_paying += __read_number($(this));
+            }
+        });
+
+    return total_paying;
+}
+
+function has_non_advance_payment_row() {
+    var has_non_advance = false;
+    $('#payment_rows_div').find('select.payment_types_dropdown').each(function() {
+        if ($(this).val() !== 'advance') {
+            has_non_advance = true;
+
+            return false;
+        }
+    });
+
+    return has_non_advance;
 }
 
 function isValidPosForm() {
@@ -2207,6 +2310,7 @@ function reset_pos_form(){
     //reset contact due
     $('.contact_due_text').find('span').text('');
     $('.contact_due_text').addClass('hide');
+    update_customer_total_due_display('');
 
     $(document).trigger('sell_form_reset');
 
@@ -2219,6 +2323,7 @@ function set_default_customer() {
     var default_customer_id = $('#default_customer_id').val();
     var default_customer_name = $('#default_customer_name').val();
     var default_customer_balance = $('#default_customer_balance').val();
+    var default_customer_discount_percent = $('#default_customer_discount_percent').val();
     var default_customer_address = $('#default_customer_address').val();
     var exists = default_customer_id ? $('select#customer_id option[value=' + default_customer_id + ']').length : 0;
     if (exists == 0 && default_customer_id) {
@@ -2235,6 +2340,7 @@ function set_default_customer() {
     $('select#customer_id')
         .val(default_customer_id)
         .trigger('change');
+    apply_customer_discount({ customer_discount_percent: default_customer_discount_percent }, true);
 
     if ($('#default_selling_price_group').length) {
         $('#price_group').val($('#default_selling_price_group').val());
@@ -2544,6 +2650,16 @@ $(document).on('change', 'select#customer_id', function(){
         getCustomerRewardPoints();
     }
 
+    var selected_customer_data = null;
+    var selected_customer = $('select#customer_id').select2('data');
+    if (selected_customer && selected_customer.length) {
+        selected_customer_data = selected_customer[0];
+    }
+    apply_customer_discount(selected_customer_data);
+    if ($('.contact_due_text').length) {
+        get_contact_due($(this).val());
+    }
+
     get_sales_orders();
 });
 
@@ -2690,6 +2806,9 @@ $(document).on('change', '.payment_types_dropdown', function(e) {
                 .data('default_payment_accounts') : $('#location_id').data('default_payment_accounts');
     var payment_type = $(this).val();
     var payment_row = $(this).closest('.payment_row');
+    if (!payment_row.find('.payment-amount').length) {
+        return;
+    }
     if (payment_type && payment_type != 'advance') {
         var default_account = default_accounts && default_accounts[payment_type]['account'] ? 
             default_accounts[payment_type]['account'] : '';
@@ -2717,6 +2836,22 @@ $(document).on('change', '.payment_types_dropdown', function(e) {
         if (account_dropdown) {
             account_dropdown.prop('disabled', true);
             account_dropdown.closest('.form-group').addClass('hide');
+        }
+
+        var total_payable = __read_number($('#final_total_input'));
+        var paying_without_current_row = total_paying_excluding_row(payment_row);
+        var remaining_due = total_payable - paying_without_current_row;
+        if (remaining_due < 0) {
+            remaining_due = 0;
+        }
+
+        var available_advance = parseFloat(max_value) || 0;
+        var advance_amount = Math.min(available_advance, remaining_due);
+        __write_number(amount_element, advance_amount);
+        amount_element.trigger('change');
+
+        if (remaining_due > advance_amount && !has_non_advance_payment_row()) {
+            $('button#add-payment-row').trigger('click');
         }
     } else {
         amount_element.rules("remove", "max-value");
@@ -3077,12 +3212,22 @@ function get_contact_due(id) {
             if (result != '') {
                 $('.contact_due_text').find('span').text(result);
                 $('.contact_due_text').removeClass('hide');
+                update_customer_total_due_display(result);
             } else {
                 $('.contact_due_text').find('span').text('');
                 $('.contact_due_text').addClass('hide');
+                update_customer_total_due_display('');
             }
         },
     });
+}
+
+function update_customer_total_due_display(due_text) {
+    var display_due = due_text;
+    if (!display_due) {
+        display_due = __currency_trans_from_en(0, true);
+    }
+    $('span.customer_total_due').text(display_due);
 }
 
 function submitQuickContactForm(form) {
@@ -3109,6 +3254,7 @@ function submitQuickContactForm(form) {
                 $('select#customer_id')
                     .val(result.data.id)
                     .trigger('change');
+                apply_customer_discount(result.data, true);
                 $('div.contact_modal').modal('hide');
                 update_shipping_address(result.data)
                 toastr.success(result.msg);
@@ -3351,10 +3497,10 @@ function saveFormDataToLocalStorage() {
 
     let form = $('form#add_pos_sell_form'); // Select the form by ID
     // Check if the form exists in the DOM
-    // if (form.length === 0) {
-    //     console.error("Error: Form #add_pos_sell_form not found.");
-    //     return;
-    // }
+    if (form.length === 0) {
+        console.error("Error: Form #add_pos_sell_form not found.");
+        return;
+    }
     // Serialize form data into an array of objects: [{name: 'input_name', value: 'input_value'}, ...]
     let formArray = form.serializeArray();
 

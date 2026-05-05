@@ -14,6 +14,8 @@
 				value="{{ $transaction->contact->name }}" >
 				<input type="hidden" id="default_customer_balance" 
 				value="{{$transaction->contact->balance}}" >
+				<input type="hidden" id="default_customer_discount_percent"
+				value="{{ $transaction->contact->customer_discount_percent ?? '' }}" >
 				{!! Form::select('contact_id', 
 					[], null, ['class' => 'form-control mousetrap', 'id' => 'customer_id', 'placeholder' => 'Enter Customer name / phone', 'required', 'style' => 'width: 100%;']); !!}
 				<span class="input-group-btn">

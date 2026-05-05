@@ -385,6 +385,10 @@ class SellPosController extends Controller
                     'discount_amount' => $input['discount_amount'],
                 ];
                 $invoice_total = $this->productUtil->calculateInvoiceTotal($input['products'], $input['tax_rate_id'], $discount);
+                $excess_to_advance = $this->calculateExcessToAdvance($input, $invoice_total['final_total']);
+                if ($excess_to_advance > 0) {
+                    $input['change_return'] = 0;
+                }
 
                 DB::beginTransaction();
 
@@ -529,6 +533,10 @@ class SellPosController extends Controller
 
                 if (!$transaction->is_suspend && !empty($input['payment']) && !$is_credit_sale) {
                     $this->transactionUtil->createOrUpdatePaymentLines($transaction, $input['payment']);
+
+                    if (!empty($contact_id) && $excess_to_advance > 0) {
+                        $this->transactionUtil->updateContactBalance($contact_id, $excess_to_advance);
+                    }
                 }
 
                 //Check for final and do some processing.
@@ -1234,6 +1242,11 @@ class SellPosController extends Controller
                     'discount_amount' => $input['discount_amount'],
                 ];
                 $invoice_total = $this->productUtil->calculateInvoiceTotal($input['products'], $input['tax_rate_id'], $discount);
+                $existing_overpayment = $this->getExistingOverpayment($transaction_before);
+                $excess_to_advance = $this->calculateExcessToAdvance($input, $invoice_total['final_total'], $existing_overpayment);
+                if ($excess_to_advance > 0) {
+                    $input['change_return'] = 0;
+                }
 
                 if (!empty($request->input('transaction_date'))) {
                     $input['transaction_date'] = $this->productUtil->uf_date($request->input('transaction_date'), true);
@@ -1409,13 +1422,17 @@ class SellPosController extends Controller
                     //Add change return
                     $change_return['amount'] = $input['change_return'] ?? 0;
                     $change_return['is_return'] = 1;
-                    if (!empty($input['change_return_id'])) {
+                    if (!empty($input['change_return_id']) && $change_return['amount'] > 0) {
                         $change_return['payment_id'] = $input['change_return_id'];
                     }
                     $input['payment'][] = $change_return;
 
                     if (!$is_direct_sale || auth()->user()->can('sell.payments')) {
                         $this->transactionUtil->createOrUpdatePaymentLines($transaction, $input['payment']);
+
+                        if (!empty($contact_id) && $excess_to_advance > 0) {
+                            $this->transactionUtil->updateContactBalance($contact_id, $excess_to_advance);
+                        }
 
                         //Update cash register
                         if (!$is_direct_sale) {
@@ -1438,6 +1455,11 @@ class SellPosController extends Controller
 
                     //Update product stock
                     $this->productUtil->adjustProductStockForInvoice($status_before, $transaction, $input);
+
+                    if ($status_before == 'draft' && $transaction->status == 'final') {
+                        $transaction->load(['sell_lines.product']);
+                        $this->autoTransferStockToDistributionCustomer($transaction);
+                    }
 
                     //Allocate the quantity from purchase and add mapping of
                     //purchase & sell lines in
@@ -1566,6 +1588,12 @@ class SellPosController extends Controller
      */
     private function onlyUpdatePayment($transaction, $input)
     {
+        $existing_overpayment = $this->getExistingOverpayment($transaction);
+        $excess_to_advance = $this->calculateExcessToAdvance($input, $transaction->final_total, $existing_overpayment);
+        if ($excess_to_advance > 0) {
+            $input['change_return'] = 0;
+        }
+
         //Add change return
         $change_return = $this->dummyPaymentLine;
         if (!empty($input['payment']['change_return'])) {
@@ -1576,11 +1604,16 @@ class SellPosController extends Controller
         //Add change return
         $change_return['amount'] = $input['change_return'] ?? 0;
         $change_return['is_return'] = 1;
-        if (!empty($input['change_return_id'])) {
+        if (!empty($input['change_return_id']) && $change_return['amount'] > 0) {
             $change_return['payment_id'] = $input['change_return_id'];
         }
         $input['payment'][] = $change_return;
         $this->transactionUtil->createOrUpdatePaymentLines($transaction, $input['payment']);
+
+        if (!empty($transaction->contact_id) && $excess_to_advance > 0) {
+            $this->transactionUtil->updateContactBalance($transaction->contact_id, $excess_to_advance);
+        }
+
         $this->cashRegisterUtil->updateSellPayments($transaction->status, $transaction, $input['payment']);
 
         //Update payment status
@@ -1594,6 +1627,39 @@ class SellPosController extends Controller
         }
 
         $this->transactionUtil->activityLog($transaction, 'payment_edited', $transaction_before);
+    }
+
+    private function calculateExcessToAdvance(array $input, $final_total, $existing_overpayment = 0)
+    {
+        if (empty($input['add_change_return_to_advance']) || (int) $input['add_change_return_to_advance'] !== 1) {
+            return 0;
+        }
+
+        if (empty($input['payment']) || !is_array($input['payment'])) {
+            return 0;
+        }
+
+        $payment_total = 0;
+        foreach ($input['payment'] as $payment) {
+            if (!is_array($payment) || !isset($payment['amount'])) {
+                continue;
+            }
+
+            $payment_total += $this->transactionUtil->num_uf($payment['amount']);
+        }
+
+        $current_overpayment = max(0, $payment_total - (float) $final_total);
+
+        return max(0, $current_overpayment - (float) $existing_overpayment);
+    }
+
+    private function getExistingOverpayment(Transaction $transaction)
+    {
+        $non_return_total = $transaction->payment_lines()
+            ->where('is_return', 0)
+            ->sum('amount');
+
+        return max(0, $non_return_total - (float) $transaction->final_total);
     }
 
     /**
@@ -2868,6 +2934,9 @@ class SellPosController extends Controller
                         );
                 }
             }
+
+            $transaction->load(['sell_lines.product']);
+            $this->autoTransferStockToDistributionCustomer($transaction);
 
             //Update payment status
             $this->transactionUtil->updatePaymentStatus($transaction->id, $transaction->final_total);

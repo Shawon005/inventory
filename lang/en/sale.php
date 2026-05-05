@@ -24,7 +24,7 @@ return [
     'discount' => 'Discount',
     'total_payable' => 'Total Payable',
     'cancel' => 'Cancel',
-    'draft' => 'Draft',
+    'draft' => 'Draft/Order',
     'finalize' => 'Pay & Checkout',
     'express_finalize' => 'Express <br/>Checkout',
     'product' => 'Product',

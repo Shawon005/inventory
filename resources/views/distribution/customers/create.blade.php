@@ -13,7 +13,7 @@
                 <!-- Existing Contact selector -->
                 <div class="col-md-6">
                     <div class="form-group">
-                        <label>Existing Contact (optional)</label>
+                        <label>Existing Contact* </label>
                         {!! Form::select('existing_contact', [], null, ['class' => 'form-control select2', 'id' => 'existing_contact', 'placeholder' => 'Search contact by name / phone']) !!}
                         {!! Form::hidden('contact_id', null, ['id' => 'contact_id']) !!}
                         <p class="help-block">Select an existing contact to autofill details. If left empty a new customer will be created.</p>
@@ -53,6 +53,7 @@
                     <div class="form-group">
                         <label>Password *</label>
                         {!! Form::password('password', ['class' => 'form-control', 'required']) !!}
+                        <small>Password must be 6 character</small>
                     </div>
                 </div>
 
@@ -68,6 +69,68 @@
             <div class="form-group">
                 <label>Address</label>
                 {!! Form::textarea('address', null, ['class' => 'form-control', 'rows' => 2]) !!}
+            </div>
+            <hr>
+            <h4>Attendance & Payroll Settings</h4>
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label>Work Latitude</label>
+                        {!! Form::text('work_latitude', null, ['class' => 'form-control', 'placeholder' => '23.8103']) !!}
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label>Work Longitude</label>
+                        {!! Form::text('work_longitude', null, ['class' => 'form-control', 'placeholder' => '90.4125']) !!}
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label>Allowed Radius (m)</label>
+                        {!! Form::number('allowed_radius_meters', 100, ['class' => 'form-control', 'min' => 10]) !!}
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label>Salary</label>
+                        {!! Form::number('salary', 0, ['class' => 'form-control', 'step' => '0.01', 'min' => 0]) !!}
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Attendance Location</label>
+                        {!! Form::text('attendance_location', null, ['class' => 'form-control', 'placeholder' => 'Office / Warehouse / Branch name']) !!}
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label>Shift Start</label>
+                        {!! Form::time('shift_start_time', null, ['class' => 'form-control']) !!}
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label>Shift End</label>
+                        {!! Form::time('shift_end_time', null, ['class' => 'form-control']) !!}
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label>Late Deduction / Hour</label>
+                        {!! Form::number('late_deduction_per_hour', 0, ['class' => 'form-control', 'step' => '0.01', 'min' => 0]) !!}
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label>Overtime Pay / Hour</label>
+                        {!! Form::number('overtime_pay_per_hour', 0, ['class' => 'form-control', 'step' => '0.01', 'min' => 0]) !!}
+                    </div>
+                </div>
             </div>
         </div>
         <div class="box-footer">

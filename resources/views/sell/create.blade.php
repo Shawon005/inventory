@@ -137,6 +137,7 @@
 							<input type="hidden" id="default_customer_name" 
 							value="{{ $walk_in_customer['name']}}" >
 							<input type="hidden" id="default_customer_balance" value="{{ $walk_in_customer['balance'] ?? ''}}" >
+							<input type="hidden" id="default_customer_discount_percent" value="{{ $walk_in_customer['customer_discount_percent'] ?? ($walk_in_customer['discount_percent'] ?? '')}}" >
 							<input type="hidden" id="default_customer_address" value="{{ $walk_in_customer['shipping_address'] ?? ''}}" >
 							@if(!empty($walk_in_customer['price_calculation_type']) && $walk_in_customer['price_calculation_type'] == 'selling_price_group')
 								<input type="hidden" id="default_selling_price_group" 
@@ -811,6 +812,8 @@
 						<div class="col-md-12 mb-12">
 							<strong>@lang('lang_v1.advance_balance'):</strong> <span id="advance_balance_text"></span>
 							{!! Form::hidden('advance_balance', null, ['id' => 'advance_balance', 'data-error-msg' => __('lang_v1.required_advance_balance_not_available')]); !!}
+							{!! Form::hidden('add_change_return_to_advance', 1, ['id' => 'add_change_return_to_advance']); !!}
+							{!! Form::hidden('excess_to_advance', 0, ['id' => 'excess_to_advance']); !!}
 						</div>
 					</div>
 					@include('sale_pos.partials.payment_row_form', ['row_index' => 0, 'show_date' => true, 'show_denomination' => true])
@@ -871,6 +874,9 @@
 					<div class="row">
 						<div class="col-sm-12">
 							<div class="pull-right"><strong>@lang('lang_v1.balance'):</strong> <span class="balance_due">0.00</span></div>
+						</div>
+						<div class="col-sm-12">
+							<div class="pull-right"><strong>@lang('account.customer_due'):</strong> <span class="customer_total_due">0.00</span></div>
 						</div>
 					</div>
 				</div>

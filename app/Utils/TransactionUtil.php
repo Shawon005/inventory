@@ -1489,14 +1489,17 @@ class TransactionUtil extends Util
         if ($transaction_type == 'sell' && $transaction->status == 'final') {
             $paid_amount = $this->getTotalPaid($transaction->id);
             $due = $transaction->final_total - $paid_amount;
+            $customer_total_due = $this->getContactDue($transaction->contact_id);
 
             $output['total_paid'] = ($paid_amount == 0) ? 0 : $this->num_f($paid_amount, $show_currency, $business_details);
             $output['total_paid_label'] = $il->paid_label;
             $output['total_due'] = ($due == 0) ? 0 : $this->num_f($due, $show_currency, $business_details);
             $output['total_due_label'] = $il->total_due_label;
+            $output['customer_total_due_label'] = __('account.customer_due');
+            $output['customer_total_due'] = $this->num_f($customer_total_due, $show_currency, $business_details);
 
             if ($il->show_previous_bal == 1) {
-                $all_due = $this->getContactDue($transaction->contact_id);
+                $all_due = $customer_total_due;
                 if (! empty($all_due)) {
                     $output['all_bal_label'] = $il->prev_bal_label;
                     $output['all_due'] = $this->num_f($all_due, $show_currency, $business_details);

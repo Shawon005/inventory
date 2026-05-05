@@ -57,10 +57,16 @@ class CustomerStockTransferService
             );
 
             if ($customerStock) {
-                $avgPrice = (($customerStock->purchase_price * $customerStock->quantity) + ($transferPrice * $quantity))
-                    / ($customerStock->quantity + $quantity);
-                $customerStock->increment('quantity', $quantity);
-                $customerStock->update(['purchase_price' => $avgPrice]);
+                // Free items (price <= 0) should increase quantity only and must not
+                // reduce the existing average purchase price.
+                if ($transferPrice <= 0) {
+                    $customerStock->increment('quantity', $quantity);
+                } else {
+                    $avgPrice = (($customerStock->purchase_price * $customerStock->quantity) + ($transferPrice * $quantity))
+                        / ($customerStock->quantity + $quantity);
+                    $customerStock->increment('quantity', $quantity);
+                    $customerStock->update(['purchase_price' => $avgPrice]);
+                }
             } else {
                 $this->customerStockRepository->updateOrCreate(
                     [

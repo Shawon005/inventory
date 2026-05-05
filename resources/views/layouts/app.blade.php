@@ -176,13 +176,9 @@
     #scrollable-container{
         position:relative;
     }
-    
-
-
 
 </style>
 <script async
     src="https://maps.googleapis.com/maps/api/js?key=AIzaSyACtMl0u5b8sU_6M5JqMlKRLNgdn_hvKQc&libraries=places&callback=initGoogleMaps">
 </script>
-<script src="{{ asset('/js/pos.js') }}"></script>
 </html>

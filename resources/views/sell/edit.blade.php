@@ -98,6 +98,7 @@
 							value="{{ $transaction->contact->id }}" >
 							<input type="hidden" id="default_customer_name" 
 							value="{{ $transaction->contact->name }}" >
+							<input type="hidden" id="default_customer_discount_percent" value="{{ $transaction->contact->customer_discount_percent ?? '' }}" >
 							{!! Form::select('contact_id', 
 								[], null, ['class' => 'form-control mousetrap', 'id' => 'customer_id', 'placeholder' => 'Enter Customer name / phone', 'required']); !!}
 							<span class="input-group-btn">
@@ -759,6 +760,10 @@
 	@can('sell.payments')
 		@component('components.widget', ['class' => 'box-solid', 'title' => __('purchase.add_payment')])
 		<div class="row">
+			<div class="col-md-12 mb-12">
+				{!! Form::hidden('add_change_return_to_advance', 1, ['id' => 'add_change_return_to_advance']); !!}
+				{!! Form::hidden('excess_to_advance', 0, ['id' => 'excess_to_advance']); !!}
+			</div>
 			@foreach($payment_lines as $payment_line)			
 				@if($payment_line['is_return'] == 1)
 					@php

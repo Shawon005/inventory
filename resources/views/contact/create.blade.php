@@ -288,6 +288,17 @@
                       <p class="help-block">@lang('lang_v1.credit_limit_help')</p>
                   </div>
                 </div>
+                <div class="col-md-4 customer_fields">
+                  <div class="form-group">
+                      {!! Form::label('customer_discount_percent', __('sale.discount') . ' (%)' . ':') !!}
+                      <div class="input-group">
+                          <span class="input-group-addon">
+                              <i class="fas fa-percent"></i>
+                          </span>
+                          {!! Form::text('customer_discount_percent', null, ['class' => 'form-control input_number', 'placeholder' => '0']); !!}
+                      </div>
+                  </div>
+                </div>
                 
 
                 <div class="col-md-12"><hr/></div>

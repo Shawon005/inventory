@@ -11,6 +11,8 @@
 				value="{{ $walk_in_customer['name'] ?? ''}}" >
 				<input type="hidden" id="default_customer_balance" 
 				value="{{ $walk_in_customer['balance'] ?? ''}}" >
+				<input type="hidden" id="default_customer_discount_percent"
+				value="{{ $walk_in_customer['customer_discount_percent'] ?? ($walk_in_customer['discount_percent'] ?? '')}}" >
 				<input type="hidden" id="default_customer_address" 
 				value="{{ $walk_in_customer['shipping_address'] ?? ''}}" >
 				@if(!empty($walk_in_customer['price_calculation_type']) && $walk_in_customer['price_calculation_type'] == 'selling_price_group')

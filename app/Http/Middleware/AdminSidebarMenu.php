@@ -458,16 +458,27 @@ class AdminSidebarMenu
                                 'Distribution Customers',
                                 ['icon' => '', 'active' => request()->segment(1) == 'distribution' && request()->segment(2) == 'customers']
                             );
+                           
                         }
-                        $sub->url(
-                            route('distribution.stock-transfers.index'),
-                            'Transfer to Customer',
-                            ['icon' => '', 'active' => request()->segment(1) == 'distribution' && request()->segment(2) == 'stock-transfers']
-                        );
-                        $sub->url(
+                        // $sub->url(
+                        //     route('distribution.stock-transfers.index'),
+                        //     'Transfer to Customer',
+                        //     ['icon' => '', 'active' => request()->segment(1) == 'distribution' && request()->segment(2) == 'stock-transfers']
+                        // );
+                         $sub->url(
                             route('distribution.tracking.index'),
                             'GPS Tracking',
                             ['icon' => '', 'active' => request()->segment(1) == 'distribution' && request()->segment(2) == 'tracking']
+                        );
+                        $sub->url(
+                            route('distribution.attendance.index'),
+                            'Attendance',
+                            ['icon' => '', 'active' => request()->segment(1) == 'distribution' && request()->segment(2) == 'attendance']
+                        );
+                        $sub->url(
+                            route('distribution.payroll.index'),
+                            'Payroll',
+                            ['icon' => '', 'active' => request()->segment(1) == 'distribution' && request()->segment(2) == 'payroll']
                         );
                     },
                     ['icon' => '<svg xmlns="http://www.w3.org/2000/svg" class="tw-size-5 tw-shrink-0" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none"><path d="M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"></path><path d="M12 12m-8 0a8 8 0 1 0 16 0a8 8 0 1 0 -16 0"></path></svg>']

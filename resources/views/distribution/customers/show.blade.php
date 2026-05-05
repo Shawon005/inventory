@@ -22,16 +22,36 @@
             <div class="box">
                 <div class="box-header"><h3>Sale Summary</h3></div>
                 <div class="box-body">
+                <form method="GET" action="">
+                    <div style="margin-bottom:15px;text-align: end;">
+                        <input type="date" name="from_date" value="{{ request('from_date') }}"style="height:32px;border-radius: 4px;width:150px;text-indent: 6px;">
+                        <input type="date" name="to_date" value="{{ request('to_date') }}"style="height:32px;border-radius: 4px;width:150px;text-indent: 6px;">
+                        <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+                        <a href="{{ url()->current() }}" class="btn btn-danger btn-sm">Reset</a>
+                    </div>
+                </form>
                     <table class="table table-bordered table-striped  dataTable" id="products-table" dataID="{{$customer->id}}">
                         <thead><tr><th>Resaler name</th><th>items</th><th>Qty</th><th>Purchase Price</th><th>Date</th></tr></thead>
                         <tbody>
-                            @forelse($customer->sales as $sale)
+                            @forelse($sales as $sale)
                             <tr>
                                 <td>{{ $sale->sold_to ?? '-' }}</td>
                                 <td>
+                                <table  width="100%">
+                                    <tr>
+                                        <th width="50%">Name</th>
+                                        <th width="20%">Qty</th>
+                                        <th>Price</th>
+                                    </tr>
                                     @foreach(json_decode($sale->items) as $item)
-                                    <span>{{$item->name}} -- ×{{$item->quantity}} --  {{$item->sale_price}}৳</span><br>
+                                    <tr>
+                                        <td>{{$item->name}}</td><td>{{$item->quantity}}</td><td>{{$item->sale_price}}৳</td>                       
+                                    </tr>
                                     @endforeach
+                                </table>
+                                    <!-- @foreach(json_decode($sale->items) as $item)
+                                    <tr>{{$item->name}} -- ×{{$item->quantity}} --  {{$item->sale_price}}৳</tr>
+                                    @endforeach -->
                                 </td>
                                 <td>{{ number_format($sale->quantity,2)}}</td>
                                 <td>{{ number_format($sale->sale_price, 2) }}</td>
@@ -42,6 +62,9 @@
                             @endforelse
                         </tbody>
                     </table>
+                    <div class="text-center">
+                        {{ $sales->appends(request()->query())->links() }}
+                    </div>
                 </div>
             </div>
         </div>
@@ -49,14 +72,14 @@
             <div class="box">
                 <div class="box-header"><h3>Stock Summary</h3></div>
                 <div class="box-body">
-                    <table class="table table-bordered table-striped">
-                        <thead><tr><th>Product</th><th>Qty</th><th>Purchase Price</th></tr></thead>
-                        <tbody>
+                    <table class="table table-bordered table-striped align-middle">
+                        <thead><tr><th>Product</th><th>Stock</th><th>Purchase Price</th></tr></thead>
+                        <tbody >
                             @forelse($customer->stocks as $stock)
                             <tr>
                                 <td>{{ $stock->product->name ?? '-' }}</td>
-                                <td>{{ $stock->quantity }}</td>
-                                <td>{{ number_format($stock->purchase_price, 2) }}</td>
+                                <td>{{ number_format($stock->quantity,0) }}</td>
+                                <td>{{ number_format($stock->purchase_price, 2) }} ৳</td>
                             </tr>
                             @empty
                             <tr><td colspan="3">No stock</td></tr>

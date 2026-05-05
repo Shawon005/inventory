@@ -14,6 +14,8 @@
                             'id' => 'advance_balance',
                             'data-error-msg' => __('lang_v1.required_advance_balance_not_available'),
                         ]) !!}
+                        {!! Form::hidden('add_change_return_to_advance', 1, ['id' => 'add_change_return_to_advance']) !!}
+                        {!! Form::hidden('excess_to_advance', 0, ['id' => 'excess_to_advance']) !!}
                     </div>
                     <div class="col-md-9">
                         <div class="row">
@@ -190,6 +192,14 @@
                                     <br />
                                     <span class="lead text-bold balance_due">0</span>
                                     <input type="hidden" id="in_balance_due" value=0>
+                                </div>
+                                <div class="col-md-12">
+                                    <hr>
+                                    <strong>
+                                        @lang('account.customer_due'):
+                                    </strong>
+                                    <br />
+                                    <span class="lead text-bold customer_total_due">0</span>
                                 </div>
 
 

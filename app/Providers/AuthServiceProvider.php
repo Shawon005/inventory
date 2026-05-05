@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Providers;
-
+use Laravel\Passport\Passport;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
 
@@ -29,7 +29,8 @@ class AuthServiceProvider extends ServiceProvider
             if (in_array($ability, ['backup', 'superadmin',
                 'manage_modules', ])) {
                 $administrator_list = config('constants.administrator_usernames');
-
+                Passport::tokensExpireIn(now()->addHours(12));
+                Passport::refreshTokensExpireIn(now()->addHours(12));
                 if (in_array(strtolower($user->username), explode(',', strtolower($administrator_list)))) {
                     return true;
                 }

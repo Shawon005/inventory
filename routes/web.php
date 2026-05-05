@@ -52,6 +52,8 @@ use App\Http\Controllers\SellReturnController;
 use App\Http\Controllers\StockAdjustmentController;
 use App\Http\Controllers\StockTransferController;
 use App\Http\Controllers\Distribution\CustomerController as DistributionCustomerController;
+use App\Http\Controllers\Distribution\AttendanceController as DistributionAttendanceController;
+use App\Http\Controllers\Distribution\PayrollController as DistributionPayrollController;
 use App\Http\Controllers\Distribution\CustomerStockTransferController;
 use App\Http\Controllers\Distribution\CustomerTrackingController;
 use App\Http\Controllers\TaxonomyController;
@@ -379,6 +381,10 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::get('distribution/stock-transfers/{id}', [CustomerStockTransferController::class, 'destroy'])->name('distribution.stock-transfers.destroy');
     Route::get('distribution/tracking/locations', [CustomerTrackingController::class, 'getLocations'])->name('distribution.tracking.locations');
     Route::get('distribution/tracking/latest', [CustomerTrackingController::class, 'getLatestLocation'])->name('distribution.tracking.latest');
+    Route::get('distribution/attendance', [DistributionAttendanceController::class, 'index'])->name('distribution.attendance.index');
+    Route::get('distribution/payroll', [DistributionPayrollController::class, 'index'])->name('distribution.payroll.index');
+    Route::get('distribution/payroll/{customer}', [DistributionPayrollController::class, 'show'])->name('distribution.payroll.show');
+    Route::get('distribution/payroll/{customer}/print', [DistributionPayrollController::class, 'print'])->name('distribution.payroll.print');
 
     Route::get('/opening-stock/add/{product_id}', [OpeningStockController::class, 'add']);
     Route::post('/opening-stock/save', [OpeningStockController::class, 'save']);

@@ -590,7 +590,7 @@ class ContactController extends Controller
             }
 
             $input = $request->only(['type', 'supplier_business_name',
-                'prefix', 'first_name', 'middle_name', 'last_name', 'tax_number', 'pay_term_number', 'pay_term_type', 'mobile', 'landline', 'alternate_number', 'city', 'state', 'country', 'address_line_1', 'address_line_2', 'customer_group_id', 'zip_code', 'contact_id', 'custom_field1', 'custom_field2', 'custom_field3', 'custom_field4', 'custom_field5', 'custom_field6', 'custom_field7', 'custom_field8', 'custom_field9', 'custom_field10', 'email', 'shipping_address', 'position', 'dob', 'shipping_custom_field_details', 'assigned_to_users', 'land_mark', 'street_name', 'building_number', 'additional_number']);
+                'prefix', 'first_name', 'middle_name', 'last_name', 'tax_number', 'pay_term_number', 'pay_term_type', 'mobile', 'landline', 'alternate_number', 'city', 'state', 'country', 'address_line_1', 'address_line_2', 'customer_group_id', 'zip_code', 'contact_id', 'custom_field1', 'custom_field2', 'custom_field3', 'custom_field4', 'custom_field5', 'custom_field6', 'custom_field7', 'custom_field8', 'custom_field9', 'custom_field10', 'email', 'shipping_address', 'position', 'dob', 'shipping_custom_field_details', 'assigned_to_users', 'land_mark', 'street_name', 'building_number', 'additional_number', 'customer_discount_percent']);
 
             $name_array = [];
 
@@ -629,6 +629,7 @@ class ContactController extends Controller
             $input['created_by'] = $request->session()->get('user.id');
 
             $input['credit_limit'] = $request->input('credit_limit') != '' ? $this->commonUtil->num_uf($request->input('credit_limit')) : null;
+            $input['customer_discount_percent'] = $request->input('customer_discount_percent') != '' ? $this->commonUtil->num_uf($request->input('customer_discount_percent')) : null;
             $input['opening_balance'] = $this->commonUtil->num_uf($request->input('opening_balance'));
 
             DB::beginTransaction();
@@ -780,7 +781,7 @@ class ContactController extends Controller
         if (request()->ajax()) {
             try {
                 $input = $request->only(['type', 'supplier_business_name', 'prefix', 'first_name', 'middle_name', 'last_name', 'tax_number', 'pay_term_number', 'pay_term_type', 'mobile', 'address_line_1', 'address_line_2', 'zip_code', 'dob', 'alternate_number', 'city', 'state', 'country', 'landline', 'customer_group_id', 'contact_id', 'custom_field1', 'custom_field2', 'custom_field3', 'custom_field4', 'custom_field5', 'custom_field6', 'custom_field7', 'custom_field8', 'custom_field9', 'custom_field10', 'email', 'shipping_address', 'position', 'shipping_custom_field_details', 'export_custom_field_1', 'export_custom_field_2', 'export_custom_field_3', 'export_custom_field_4', 'export_custom_field_5',
-                    'export_custom_field_6', 'assigned_to_users', 'land_mark', 'street_name', 'building_number', 'additional_number']);
+                    'export_custom_field_6', 'assigned_to_users', 'land_mark', 'street_name', 'building_number', 'additional_number', 'customer_discount_percent']);
 
                 $name_array = [];
 
@@ -814,6 +815,7 @@ class ContactController extends Controller
                 }
 
                 $input['credit_limit'] = $request->input('credit_limit') != '' ? $this->commonUtil->num_uf($request->input('credit_limit')) : null;
+                $input['customer_discount_percent'] = $request->input('customer_discount_percent') != '' ? $this->commonUtil->num_uf($request->input('customer_discount_percent')) : null;
 
                 $business_id = $request->session()->get('user.business_id');
 
@@ -931,7 +933,11 @@ class ContactController extends Controller
 
             $contacts->select(
                 'contacts.id',
-                DB::raw("IF(contacts.contact_id IS NULL OR contacts.contact_id='', contacts.name, CONCAT(contacts.name, ' (', contacts.contact_id, ')')) AS text"),
+                DB::raw("IF(
+    NULLIF(contacts.name, '') IS NULL,
+    CONCAT(contacts.supplier_business_name, ' (', contacts.contact_id, ')'),
+    CONCAT(contacts.name, ' (', contacts.contact_id, ')')
+) AS text"),
                 'mobile',
                 'email',
                 'address_line_1',
@@ -945,7 +951,9 @@ class ContactController extends Controller
                 'pay_term_type',
                 'balance',
                 'supplier_business_name',
+                'contacts.customer_discount_percent',
                 'cg.amount as discount_percent',
+                DB::raw('IF(contacts.customer_discount_percent IS NOT NULL, contacts.customer_discount_percent, cg.amount) as auto_discount_percent'),
                 'cg.price_calculation_type',
                 'cg.selling_price_group_id',
                 'shipping_custom_field_details',

@@ -1,9 +1,11 @@
 <?php
 
 use App\Http\Controllers\Api\Customer\AuthController;
+use App\Http\Controllers\Api\Customer\AttendanceController;
 use App\Http\Controllers\Api\Customer\DashboardController;
 use App\Http\Controllers\Api\Customer\LocationController;
 use App\Http\Controllers\Api\Customer\ProfileController;
+use App\Http\Controllers\Api\Customer\ReportController;
 use App\Http\Controllers\Api\Customer\SaleController;
 use App\Http\Controllers\Api\Customer\StockController;
 use Illuminate\Http\Request;
@@ -34,9 +36,18 @@ Route::prefix('customer')->group(function () {
     Route::middleware(['auth:sanctum', 'throttle:customer_api'])->group(function () {
         Route::get('dashboard', [DashboardController::class, 'index']);
         Route::get('stock', [StockController::class, 'index']);
-        Route::post('sell', [SaleController::class, 'sell']);
+        Route::post('sale', [SaleController::class, 'sell']);
+        Route::put('sale/{id}', [SaleController::class, 'update']);
+        Route::put('sale/{id}/status', [SaleController::class, 'changeStatus']);
+        Route::delete('sale/{id}', [SaleController::class, 'destroy']);
         Route::get('sales-history', [SaleController::class, 'history']);
         Route::post('location/update', [LocationController::class, 'update']);
+        Route::post('attendance', [AttendanceController::class, 'store']);
+        Route::get('attendance/details', [AttendanceController::class, 'details']);
         Route::get('profile', [ProfileController::class, 'show']);
+        Route::get('app-report', [ReportController::class, 'appReport']);
+        Route::get('daily-sales', [ReportController::class, 'dailySales']);
+        Route::get('weekly-sales', [ReportController::class, 'weeklySales']);
+        Route::get('monthly-sales', [ReportController::class, 'monthlySales']);
     });
 });

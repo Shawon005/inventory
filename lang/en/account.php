@@ -30,7 +30,7 @@ return [
     'liability' => 'Liability',
     'assets' => 'Assets',
     'supplier_due' => 'Supplier Due',
-    'customer_due' => 'Customer Due',
+    'customer_due' => 'Total Due',
     'account_balances' => 'Account Balances',
     'total_assets' => 'Total Assets',
     'total_liability' => 'Total Liability',

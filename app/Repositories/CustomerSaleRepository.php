@@ -12,6 +12,26 @@ class CustomerSaleRepository implements CustomerSaleRepositoryInterface
         return CustomerSale::create($data);
     }
 
+    public function findByIdAndCustomer(int $id, int $customerId): ?CustomerSale
+    {
+        return CustomerSale::where('id', $id)
+            ->where('customer_id', $customerId)
+            ->first();
+    }
+
+    public function update(CustomerSale $sale, array $data): CustomerSale
+    {
+        $sale->fill($data);
+        $sale->save();
+
+        return $sale;
+    }
+
+    public function delete(CustomerSale $sale): bool
+    {
+        return (bool) $sale->delete();
+    }
+
     public function getSalesByCustomer(int $customerId, ?string $fromDate = null, ?string $toDate = null): Collection
     {
         $query = CustomerSale::where('customer_id', $customerId)
@@ -45,5 +65,13 @@ class CustomerSaleRepository implements CustomerSaleRepositoryInterface
             SUM(sale_price * quantity) as total_revenue,
             SUM(profit) as total_profit
         ')->first();
+    }
+
+    public function getSalesTotalByDateRange(int $customerId, string $fromDate, string $toDate): float
+    {
+        return (float) CustomerSale::where('customer_id', $customerId)
+            ->whereDate('created_at', '>=', $fromDate)
+            ->whereDate('created_at', '<=', $toDate)
+            ->sum('sale_price');
     }
 }
