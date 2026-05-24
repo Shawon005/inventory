@@ -13,6 +13,7 @@ class CustomerDashboardResource extends JsonResource
 
         return [
             'customer' => new CustomerResource($this->resource),
+            'total_sale_target_amount' => (float) ($this->resource->monthly_target_amount ?? 0),
             'total_stock_items' => $stocks->where('quantity', '>', 0)->count(),
             'total_stock_value' => round($totalStockValue, 2),
             'today_sales_count' => $this->resource->sales()->whereDate('created_at', today())->count(),

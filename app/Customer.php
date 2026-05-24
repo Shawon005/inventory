@@ -39,6 +39,9 @@ class Customer extends Authenticatable
         'email_verified_at' => 'datetime',
         'work_latitude' => 'float',
         'work_longitude' => 'float',
+        'tada_bill_amount' => 'float',
+        'monthly_target_amount' => 'float',
+        'commission_percent' => 'float',
     ];
 
     /**
@@ -98,6 +101,11 @@ class Customer extends Authenticatable
     public function attendances()
     {
         return $this->hasMany(CustomerAttendance::class);
+    }
+
+    public function workLocations()
+    {
+        return $this->hasMany(CustomerWorkLocation::class);
     }
 
     /**

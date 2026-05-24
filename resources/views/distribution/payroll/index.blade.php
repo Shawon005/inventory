@@ -47,12 +47,21 @@
                         <tr>
                             <th>Employee</th>
                             <th>Present Days</th>
+                            <th>Holiday Days</th>
+                            <th>Approved Leave</th>
+                            <th>Absent Days</th>
                             <th>Worked Hours</th>
                             <th>Late Hours</th>
                             <th>Overtime Hours</th>
                             <th>Base Salary</th>
+                            <th>Absent Deduction</th>
                             <th>Late Deduction</th>
                             <th>Overtime Pay</th>
+                            <th>TA/DA Total</th>
+                            <th>Monthly Sales</th>
+                            <th>Target</th>
+                            <th>Excess Sales</th>
+                            <th>Commission</th>
                             <th>Net Payable</th>
                             <th>Actions</th>
                         </tr>
@@ -62,12 +71,21 @@
                             <tr>
                                 <td>{{ $row['customer']->name }}</td>
                                 <td>{{ $row['present_days'] }}</td>
+                                <td>{{ $row['holiday_days'] }}</td>
+                                <td>{{ $row['approved_leave_days'] }}</td>
+                                <td>{{ $row['absent_days'] }}</td>
                                 <td>{{ $row['worked_hours'] }}</td>
                                 <td>{{ $row['late_hours'] }}</td>
                                 <td>{{ $row['overtime_hours'] }}</td>
                                 <td>@format_currency($row['base_salary'])</td>
+                                <td>@format_currency($row['absent_deduction'])</td>
                                 <td>@format_currency($row['late_deduction'])</td>
                                 <td>@format_currency($row['overtime_pay'])</td>
+                                <td>@format_currency($row['total_tada_bill'])</td>
+                                <td>@format_currency($row['monthly_sales_amount'])</td>
+                                <td>@format_currency($row['monthly_target_amount'])</td>
+                                <td>@format_currency($row['excess_sales_amount'])</td>
+                                <td>@format_currency($row['commission_amount'])</td>
                                 <td><strong>@format_currency($row['net_payable'])</strong></td>
                                 <td>
                                     <a href="{{ route('distribution.payroll.show', ['customer' => $row['customer']->id, 'month' => $selectedMonth]) }}" class="btn btn-xs btn-info">View</a>
@@ -75,7 +93,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="10" class="text-center">No employees found</td></tr>
+                            <tr><td colspan="19" class="text-center">No employees found</td></tr>
                         @endforelse
                     </tbody>
                 </table>

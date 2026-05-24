@@ -468,13 +468,7 @@
                                                 <img src="{{ $line['image'] }}" alt="Image" width="50"
                                                     style="float: left; margin-right: 8px;">
                                             @endif
-                                            {{ $line['name'] }} {{ $line['product_variation'] }}
-                                            {{ $line['variation'] }}
-                                            @if (!empty($line['sub_sku']))
-                                                , {{ $line['sub_sku'] }}
-                                                @endif @if (!empty($line['brand']))
-                                                    , {{ $line['brand'] }}
-                                                @endif
+                                            {{ $line['name'] }}
                                                 @if (!empty($line['product_custom_fields']))
                                                     , {{ $line['product_custom_fields'] }}
                                                 @endif

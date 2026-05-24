@@ -15,6 +15,8 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
+        $schedule->command('attendance:auto-checkout')->everyThirtyMinutes();
+
         $env = config('app.env');
         $email = config('mail.username');
 

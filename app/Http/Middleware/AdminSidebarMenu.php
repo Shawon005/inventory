@@ -476,6 +476,16 @@ class AdminSidebarMenu
                             ['icon' => '', 'active' => request()->segment(1) == 'distribution' && request()->segment(2) == 'attendance']
                         );
                         $sub->url(
+                            route('distribution.holidays.index'),
+                            'Holidays',
+                            ['icon' => '', 'active' => request()->segment(1) == 'distribution' && request()->segment(2) == 'holidays']
+                        );
+                        $sub->url(
+                            route('distribution.leave-requests.index'),
+                            'Leave Requests',
+                            ['icon' => '', 'active' => request()->segment(1) == 'distribution' && request()->segment(2) == 'leave-requests']
+                        );
+                        $sub->url(
                             route('distribution.payroll.index'),
                             'Payroll',
                             ['icon' => '', 'active' => request()->segment(1) == 'distribution' && request()->segment(2) == 'payroll']

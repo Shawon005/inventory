@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\Customer\AuthController;
 use App\Http\Controllers\Api\Customer\AttendanceController;
 use App\Http\Controllers\Api\Customer\DashboardController;
 use App\Http\Controllers\Api\Customer\LocationController;
+use App\Http\Controllers\Api\Customer\LeaveRequestController;
 use App\Http\Controllers\Api\Customer\ProfileController;
 use App\Http\Controllers\Api\Customer\ReportController;
 use App\Http\Controllers\Api\Customer\SaleController;
@@ -44,6 +45,8 @@ Route::prefix('customer')->group(function () {
         Route::post('location/update', [LocationController::class, 'update']);
         Route::post('attendance', [AttendanceController::class, 'store']);
         Route::get('attendance/details', [AttendanceController::class, 'details']);
+        Route::get('leave-requests', [LeaveRequestController::class, 'index']);
+        Route::post('leave-requests', [LeaveRequestController::class, 'store']);
         Route::get('profile', [ProfileController::class, 'show']);
         Route::get('app-report', [ReportController::class, 'appReport']);
         Route::get('daily-sales', [ReportController::class, 'dailySales']);

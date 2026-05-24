@@ -362,8 +362,7 @@
 	                        <td class="description">
 	                        	<div style="display:flex; width: 100%;">
 	                        		<p class="m-0 mt-5" style="white-space: nowrap;">#{{$loop->iteration}}.&nbsp;</p>
-	                        		<p class="text-left m-0 mt-5 pull-left">{{$line['name']}}  
-			                        	@if(!empty($line['sub_sku'])), {{$line['sub_sku']}} @endif @if(!empty($line['brand'])), {{$line['brand']}} @endif @if(!empty($line['cat_code'])), {{$line['cat_code']}}@endif
+	                        		<p class="text-left m-0 mt-5 pull-left">{{$line['name']}}
 			                        	@if(!empty($line['product_custom_fields'])), {{$line['product_custom_fields']}} @endif
 			                        	@if(!empty($line['product_description']))
 			                        		<br>
@@ -380,10 +379,6 @@
 			                        	@if(!empty($line['lot_number']))<br> {{$line['lot_number_label']}}:  {{$line['lot_number']}} @endif 
 			                        	@if(!empty($line['product_expiry'])), {{$line['product_expiry_label']}}:  {{$line['product_expiry']}} @endif
 
-			                        	@if(!empty($line['variation']))
-			                        		,
-			                        		{{$line['product_variation']}} {{$line['variation']}}
-			                        	@endif
 			                        	@if(!empty($line['warranty_name']))
 			                            	, 
 			                            	<small>

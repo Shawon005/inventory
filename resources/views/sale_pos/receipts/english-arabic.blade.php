@@ -152,15 +152,10 @@
                 @foreach($receipt_details->lines as $line)
                 <tr>
                     <td class="print-red" style="text-align: center;">
-                        @if(!empty($line['sub_sku']))
-                            {{$line['sub_sku']}}
-                        @endif
+                        
                     </td>
                     <td class="print-red" style=" text-align: left;">
-                        {{$line['name']}} {{$line['product_variation']}} {{$line['variation']}}
-                        @if(!empty($line['sub_sku'])), {{$line['sub_sku']}} @endif 
-                        @if(!empty($line['brand'])), {{$line['brand']}} @endif 
-                        @if(!empty($line['cat_code'])), {{$line['cat_code']}}@endif
+                        {{$line['name']}}
                         @if(!empty($line['product_custom_fields'])), {{$line['product_custom_fields']}} @endif
                         @if(!empty($line['product_description']))
                             <br><small>{!!$line['product_description']!!}</small>

@@ -53,6 +53,8 @@ use App\Http\Controllers\StockAdjustmentController;
 use App\Http\Controllers\StockTransferController;
 use App\Http\Controllers\Distribution\CustomerController as DistributionCustomerController;
 use App\Http\Controllers\Distribution\AttendanceController as DistributionAttendanceController;
+use App\Http\Controllers\Distribution\HolidayController as DistributionHolidayController;
+use App\Http\Controllers\Distribution\LeaveRequestController as DistributionLeaveRequestController;
 use App\Http\Controllers\Distribution\PayrollController as DistributionPayrollController;
 use App\Http\Controllers\Distribution\CustomerStockTransferController;
 use App\Http\Controllers\Distribution\CustomerTrackingController;
@@ -382,6 +384,15 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::get('distribution/tracking/locations', [CustomerTrackingController::class, 'getLocations'])->name('distribution.tracking.locations');
     Route::get('distribution/tracking/latest', [CustomerTrackingController::class, 'getLatestLocation'])->name('distribution.tracking.latest');
     Route::get('distribution/attendance', [DistributionAttendanceController::class, 'index'])->name('distribution.attendance.index');
+    Route::post('distribution/attendance/{attendance}/tada-bill', [DistributionAttendanceController::class, 'updateTadaBill'])->name('distribution.attendance.tada-bill.update');
+    Route::post('distribution/attendance/{attendance}/approve-late', [DistributionAttendanceController::class, 'approveLateAttendance'])->name('distribution.attendance.approve-late');
+    Route::post('distribution/attendance/{attendance}/reject-late', [DistributionAttendanceController::class, 'rejectLateAttendance'])->name('distribution.attendance.reject-late');
+    Route::resource('distribution/holidays', DistributionHolidayController::class)
+        ->except(['show'])
+        ->names('distribution.holidays');
+    Route::get('distribution/leave-requests', [DistributionLeaveRequestController::class, 'index'])->name('distribution.leave-requests.index');
+    Route::post('distribution/leave-requests/{id}/approve', [DistributionLeaveRequestController::class, 'approve'])->name('distribution.leave-requests.approve');
+    Route::post('distribution/leave-requests/{id}/reject', [DistributionLeaveRequestController::class, 'reject'])->name('distribution.leave-requests.reject');
     Route::get('distribution/payroll', [DistributionPayrollController::class, 'index'])->name('distribution.payroll.index');
     Route::get('distribution/payroll/{customer}', [DistributionPayrollController::class, 'show'])->name('distribution.payroll.show');
     Route::get('distribution/payroll/{customer}/print', [DistributionPayrollController::class, 'print'])->name('distribution.payroll.print');

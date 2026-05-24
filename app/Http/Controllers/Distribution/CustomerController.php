@@ -4,12 +4,14 @@ namespace App\Http\Controllers\Distribution;
 
 use App\Customer;
 use App\CustomerSale;
+use App\CustomerWorkLocation;
 use App\Http\Controllers\Controller;
 use App\Repositories\Contracts\CustomerRepositoryInterface;
 use Illuminate\Http\Request;
 
 class CustomerController extends Controller
 {
+    protected array $weekdays = ['saturday', 'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
     
     // protected $customerRepository;
 
@@ -94,13 +96,21 @@ class CustomerController extends Controller
             'work_latitude' => 'nullable|numeric|between:-90,90',
             'work_longitude' => 'nullable|numeric|between:-180,180',
             'allowed_radius_meters' => 'nullable|integer|min:10|max:5000',
-            'shift_start_time' => 'nullable|date_format:H:i',
-            'shift_end_time' => 'nullable|date_format:H:i',
+            'shift_start_time' => ['nullable', 'regex:/^\d{2}:\d{2}(:\d{2})?$/'],
+            'shift_end_time' => ['nullable', 'regex:/^\d{2}:\d{2}(:\d{2})?$/'],
             'salary' => 'nullable|numeric|min:0',
             'base_salary' => 'nullable|numeric|min:0',
             'late_deduction_per_hour' => 'nullable|numeric|min:0',
             'overtime_pay_per_hour' => 'nullable|numeric|min:0',
             'attendance_location' => 'nullable|string|max:255',
+            'tada_bill_amount' => 'nullable|numeric|min:0',
+            'monthly_target_amount' => 'nullable|numeric|min:0',
+            'commission_percent' => 'nullable|numeric|min:0|max:100',
+            'day_locations' => 'nullable|array',
+            'day_locations.*.location_name' => 'nullable|string|max:255',
+            'day_locations.*.latitude' => 'nullable|numeric|between:-90,90',
+            'day_locations.*.longitude' => 'nullable|numeric|between:-180,180',
+            'day_locations.*.allowed_radius_meters' => 'nullable|integer|min:10|max:5000',
         ]);
 
         $business_id = request()->session()->get('user.business_id');
@@ -120,6 +130,9 @@ class CustomerController extends Controller
             'late_deduction_per_hour' => $request->late_deduction_per_hour ?? 0,
             'overtime_pay_per_hour' => $request->overtime_pay_per_hour ?? 0,
             'attendance_location' => $request->attendance_location,
+            'tada_bill_amount' => $request->tada_bill_amount ?? 0,
+            'monthly_target_amount' => $request->monthly_target_amount ?? 0,
+            'commission_percent' => $request->commission_percent ?? 0,
         ];
 
         if ($request->filled('contact_id')) {
@@ -135,7 +148,8 @@ class CustomerController extends Controller
             $data['email'] = $request->email;
         }
       
-        $this->customerRepository->create($data);
+        $customer = $this->customerRepository->create($data);
+        $this->syncDayLocations($customer, (array) $request->input('day_locations', []));
 
         $output = ['success' => true, 'msg' => __('lang_v1.success')];
 
@@ -180,6 +194,10 @@ class CustomerController extends Controller
     }
     public function edit($id)
     {
+        if (! auth()->user()->can('customer.create')) {
+            abort(403, 'Unauthorized action.');
+        }
+
         $customer = Customer::findOrFail($id);
 
         if ($customer->business_id != request()->session()->get('user.business_id')) {
@@ -191,12 +209,16 @@ class CustomerController extends Controller
 
     public function update(Request $request, $id)
     {
+        if (! auth()->user()->can('customer.create')) {
+            abort(403, 'Unauthorized action.');
+        }
+
         $customer = Customer::findOrFail($id);
 
         if ($customer->business_id != request()->session()->get('user.business_id')) {
             abort(403, 'Unauthorized action.');
         }
-
+       
         $request->validate([
             'name' => 'required|string|max:255',
             'phone' => 'required|string|max:50',
@@ -206,13 +228,21 @@ class CustomerController extends Controller
             'work_latitude' => 'nullable|numeric|between:-90,90',
             'work_longitude' => 'nullable|numeric|between:-180,180',
             'allowed_radius_meters' => 'nullable|integer|min:10|max:5000',
-            'shift_start_time' => 'nullable|date_format:H:i',
-            'shift_end_time' => 'nullable|date_format:H:i',
+            'shift_start_time' => ['nullable', 'regex:/^\d{2}:\d{2}(:\d{2})?$/'],
+            'shift_end_time' => ['nullable', 'regex:/^\d{2}:\d{2}(:\d{2})?$/'],
             'salary' => 'nullable|numeric|min:0',
             'base_salary' => 'nullable|numeric|min:0',
             'late_deduction_per_hour' => 'nullable|numeric|min:0',
             'overtime_pay_per_hour' => 'nullable|numeric|min:0',
             'attendance_location' => 'nullable|string|max:255',
+            'tada_bill_amount' => 'nullable|numeric|min:0',
+            'monthly_target_amount' => 'nullable|numeric|min:0',
+            'commission_percent' => 'nullable|numeric|min:0|max:100',
+            'day_locations' => 'nullable|array',
+            'day_locations.*.location_name' => 'nullable|string|max:255',
+            'day_locations.*.latitude' => 'nullable|numeric|between:-90,90',
+            'day_locations.*.longitude' => 'nullable|numeric|between:-180,180',
+            'day_locations.*.allowed_radius_meters' => 'nullable|integer|min:10|max:5000',
         ]);
 
         $data = [
@@ -230,6 +260,9 @@ class CustomerController extends Controller
             'late_deduction_per_hour' => $request->late_deduction_per_hour ?? 0,
             'overtime_pay_per_hour' => $request->overtime_pay_per_hour ?? 0,
             'attendance_location' => $request->attendance_location,
+            'tada_bill_amount' => $request->tada_bill_amount ?? 0,
+            'monthly_target_amount' => $request->monthly_target_amount ?? 0,
+            'commission_percent' => $request->commission_percent ?? 0,
         ];
 
         if ($request->filled('password')) {
@@ -237,10 +270,48 @@ class CustomerController extends Controller
             $data['password'] = bcrypt($request->password);
         }
 
-        $this->customerRepository->update($customer, $data);
+        try {
+            $this->customerRepository->update($customer, $data);
+            $this->syncDayLocations($customer, (array) $request->input('day_locations', []));
+        } catch (\Throwable $e) {
+            \Log::error('Distribution customer update failed', [
+                'customer_id' => $customer->id,
+                'message' => $e->getMessage(),
+            ]);
+
+            return redirect()->back()->withInput()->with('status', [
+                'success' => false,
+                'msg' => 'Update failed: '.$e->getMessage(),
+            ]);
+        }
 
         $output = ['success' => true, 'msg' => __('lang_v1.success')];
 
         return redirect()->action([\App\Http\Controllers\Distribution\CustomerController::class, 'index'])->with('status', $output);
+    }
+
+    protected function syncDayLocations(Customer $customer, array $dayLocations): void
+    {
+        foreach ($this->weekdays as $weekday) {
+            $row = $dayLocations[$weekday] ?? [];
+            $lat = $row['latitude'] ?? null;
+            $lng = $row['longitude'] ?? null;
+
+            if ($lat === null || $lat === '' || $lng === null || $lng === '') {
+                CustomerWorkLocation::where('customer_id', $customer->id)->where('weekday', $weekday)->delete();
+                continue;
+            }
+
+            CustomerWorkLocation::updateOrCreate(
+                ['customer_id' => $customer->id, 'weekday' => $weekday],
+                [
+                    'location_name' => $row['location_name'] ?? null,
+                    'latitude' => $lat,
+                    'longitude' => $lng,
+                    'allowed_radius_meters' => $row['allowed_radius_meters'] ?? 100,
+                    'is_active' => true,
+                ]
+            );
+        }
     }
 }
