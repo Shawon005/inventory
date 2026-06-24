@@ -11,6 +11,13 @@
             <div class="row">
                 <div class="col-md-6">
                     <div class="form-group">
+                        <label>Stock Owner Customer</label>
+                        {!! Form::select('stock_owner_customer_id', $customers->pluck('name', 'id')->prepend('Use this customer as stock owner', ''), $customer->stock_owner_customer_id, ['class' => 'form-control select2', 'style' => 'width:100%']) !!}
+                        <small class="help-block">Select the main customer whose stock should be shared with this distributor.</small>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
                         <label>Name *</label>
                         {!! Form::text('name', $customer->name, ['class' => 'form-control', 'required']) !!}
                     </div>

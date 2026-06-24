@@ -27,6 +27,7 @@ class CustomerSaleService
     {
         return DB::transaction(function () use ($data) {
             $customerId = $data['customer_id'];
+            $stockCustomerId = $this->resolveStockCustomerId($customerId);
             $items = $this->normalizeItems($data['items']);
             $salePrice = (float) $data['sale_price'];
             $discount = (float) $data['discount'];
@@ -37,7 +38,7 @@ class CustomerSaleService
             $status = $this->normalizeStatus($data['status'] ?? self::STATUS_ORDERED);
 
             if ($status === self::STATUS_DELIVERED) {
-                $this->decreaseStockForItems($customerId, $items);
+                $this->decreaseStockForItems($stockCustomerId, $items);
             }
 
             $sales = $this->customerSaleRepository->create([
@@ -67,9 +68,10 @@ class CustomerSaleService
             $currentStatus = $this->currentStatus($sale);
             $oldItems = $this->normalizeItems($this->decodeItems($sale->items));
             $newItems = isset($data['items']) ? $this->normalizeItems($data['items']) : $oldItems;
+            $stockCustomerId = $this->resolveStockCustomerId((int) $sale->customer_id);
 
             if ($currentStatus === self::STATUS_DELIVERED) {
-                $this->adjustStockForDeliveredEdit((int) $sale->customer_id, $oldItems, $newItems);
+                $this->adjustStockForDeliveredEdit($stockCustomerId, $oldItems, $newItems);
             }
 
             $payload = [];
@@ -103,6 +105,7 @@ class CustomerSaleService
         return DB::transaction(function () use ($sale, $nextStatus) {
             $currentStatus = $this->currentStatus($sale);
             $nextStatus = $this->normalizeStatus($nextStatus);
+            $stockCustomerId = $this->resolveStockCustomerId((int) $sale->customer_id);
 
             if ($currentStatus === $nextStatus) {
                 return $sale;
@@ -114,7 +117,7 @@ class CustomerSaleService
 
             if ($nextStatus === self::STATUS_DELIVERED) {
                 $items = $this->normalizeItems($this->decodeItems($sale->items));
-                $this->decreaseStockForItems((int) $sale->customer_id, $items);
+                $this->decreaseStockForItems($stockCustomerId, $items);
             }
 
             return $this->customerSaleRepository->update($sale, ['status' => $nextStatus, 'updated_at' => now()]);
@@ -293,5 +296,16 @@ class CustomerSaleService
                 }
             }
         }
+    }
+
+    private function resolveStockCustomerId(int $customerId): int
+    {
+        $customer = \App\Customer::find($customerId);
+
+        if (! $customer) {
+            return $customerId;
+        }
+
+        return (int) $customer->resolved_stock_owner_id;
     }
 }

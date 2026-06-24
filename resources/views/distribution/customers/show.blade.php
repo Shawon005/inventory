@@ -15,6 +15,7 @@
                     <p><strong>Email:</strong> {{ $customer->email }}</p>
                     <p><strong>Phone:</strong> {{ $customer->phone }}</p>
                     <p><strong>Address:</strong> {{ $customer->address ?? '-' }}</p>
+                    <p><strong>Stock Owner:</strong> {{ $stockCustomer->name ?? $customer->name }}</p>
                     <p><strong>Status:</strong> <span class="label label-{{ $customer->status == 'active' ? 'success' : 'danger' }}">{{ ucfirst($customer->status) }}</span></p>
                     <a href="{{ action([\App\Http\Controllers\Distribution\CustomerController::class, 'edit'], [$customer->id]) }}" class="btn btn-primary">Edit</a>
                 </div>
@@ -70,12 +71,15 @@
         </div>
         <div class="col-md-6">
             <div class="box">
-                <div class="box-header"><h3>Stock Summary</h3></div>
+                <div class="box-header">
+                    <h3>Stock Summary</h3>
+                    <small>{{ $stockCustomer->id === $customer->id ? 'This customer stock' : 'Shared stock owned by '.$stockCustomer->name }}</small>
+                </div>
                 <div class="box-body">
                     <table class="table table-bordered table-striped align-middle">
                         <thead><tr><th>Product</th><th>Stock</th><th>Purchase Price</th></tr></thead>
                         <tbody >
-                            @forelse($customer->stocks as $stock)
+                            @forelse($stockCustomer->stocks as $stock)
                             <tr>
                                 <td>{{ $stock->product->name ?? '-' }}</td>
                                 <td>{{ number_format($stock->quantity,0) }}</td>

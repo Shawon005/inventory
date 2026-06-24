@@ -66,6 +66,40 @@ class Customer extends Authenticatable
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function stockOwner()
+    {
+        return $this->belongsTo(Customer::class, 'stock_owner_customer_id');
+    }
+
+    public function distributorCustomers()
+    {
+        return $this->hasMany(Customer::class, 'stock_owner_customer_id');
+    }
+
+    public function getResolvedStockOwnerIdAttribute(): int
+    {
+        $visited = [$this->id => true];
+        $current = $this;
+
+        while (! empty($current->stock_owner_customer_id)) {
+            $next = self::find($current->stock_owner_customer_id);
+
+            if (! $next || isset($visited[$next->id])) {
+                break;
+            }
+
+            $visited[$next->id] = true;
+            $current = $next;
+        }
+
+        return (int) $current->id;
+    }
+
+    public function resolvedStockOwner()
+    {
+        return self::find($this->resolved_stock_owner_id);
+    }
+
     /**
      * Get customer stocks.
      */

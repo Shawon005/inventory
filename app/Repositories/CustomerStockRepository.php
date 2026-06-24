@@ -3,12 +3,15 @@
 namespace App\Repositories;
 use Illuminate\Support\Collection;
 use App\CustomerStock;
+use App\Customer;
 use App\Repositories\Contracts\CustomerStockRepositoryInterface;
 
 class CustomerStockRepository implements CustomerStockRepositoryInterface
 {
     public function getStockByCustomerAndProduct(int $customerId, int $productId): ?CustomerStock
     {
+        $customerId = $this->resolveStockCustomerId($customerId);
+
         return CustomerStock::where('customer_id', $customerId)
             ->where('product_id', $productId)
             ->first();
@@ -16,6 +19,8 @@ class CustomerStockRepository implements CustomerStockRepositoryInterface
 
     public function getCustomerStocks(int $customerId): Collection
     {
+        $customerId = $this->resolveStockCustomerId($customerId);
+
         return CustomerStock::where('customer_id', $customerId)
             ->with([
                 'product',
@@ -34,5 +39,16 @@ class CustomerStockRepository implements CustomerStockRepositoryInterface
     public function updateOrCreate(array $attributes, array $values = []): CustomerStock
     {
         return CustomerStock::updateOrCreate($attributes, $values);
+    }
+
+    protected function resolveStockCustomerId(int $customerId): int
+    {
+        $customer = Customer::find($customerId);
+
+        if (! $customer) {
+            return $customerId;
+        }
+
+        return (int) $customer->resolved_stock_owner_id;
     }
 }

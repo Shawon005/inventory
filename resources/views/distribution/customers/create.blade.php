@@ -10,6 +10,13 @@
     <div class="box">
         <div class="box-body">
             <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Stock Owner Customer</label>
+                        {!! Form::select('stock_owner_customer_id', $customers->pluck('name', 'id')->prepend('Use this customer as stock owner', ''), null, ['class' => 'form-control select2', 'style' => 'width:100%']) !!}
+                        <small class="help-block">Leave blank to keep stock under this customer. Select a parent customer to share stock across multiple distributors.</small>
+                    </div>
+                </div>
                 <!-- Existing Contact selector -->
                 <div class="col-md-6">
                     <div class="form-group">

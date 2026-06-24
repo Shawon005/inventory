@@ -26,6 +26,7 @@ class CustomerStockTransferService
             $productId = $data['product_id'];
             $variationId = $data['variation_id'] ?? null;
             $locationId = $data['location_id'];
+            $stockCustomerId = $this->resolveStockCustomerId((int) $data['customer_id']);
 
             if (! $variationId) {
                 $variation = Variation::where('product_id', $productId)->first();
@@ -52,7 +53,7 @@ class CustomerStockTransferService
 
             // Add to customer stock
             $customerStock = $this->customerStockRepository->getStockByCustomerAndProduct(
-                $data['customer_id'],
+                $stockCustomerId,
                 $productId
             );
 
@@ -70,7 +71,7 @@ class CustomerStockTransferService
             } else {
                 $this->customerStockRepository->updateOrCreate(
                     [
-                        'customer_id' => $data['customer_id'],
+                        'customer_id' => $stockCustomerId,
                         'product_id' => $productId,
                     ],
                     [
@@ -83,7 +84,7 @@ class CustomerStockTransferService
 
             // Create transfer record
             return CustomerStockTransfer::create([
-                'customer_id' => $data['customer_id'],
+                'customer_id' => $stockCustomerId,
                 'product_id' => $productId,
                 'variation_id' => $variationId,
                 'location_id' => $locationId,
@@ -93,6 +94,17 @@ class CustomerStockTransferService
                 'created_by' => $data['created_by'],
             ]);
         });
+    }
+
+    protected function resolveStockCustomerId(int $customerId): int
+    {
+        $customer = \App\Customer::find($customerId);
+
+        if (! $customer) {
+            return $customerId;
+        }
+
+        return (int) $customer->resolved_stock_owner_id;
     }
     public function reverseTransfer(CustomerStockTransfer $transfer): void
     {

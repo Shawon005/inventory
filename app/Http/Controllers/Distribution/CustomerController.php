@@ -8,6 +8,7 @@ use App\CustomerWorkLocation;
 use App\Http\Controllers\Controller;
 use App\Repositories\Contracts\CustomerRepositoryInterface;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class CustomerController extends Controller
 {
@@ -43,7 +44,12 @@ class CustomerController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
-        return view('distribution.customers.create');
+        $business_id = request()->session()->get('user.business_id');
+        $customers = Customer::where('business_id', $business_id)
+            ->orderBy('name')
+            ->get();
+
+        return view('distribution.customers.create', compact('customers'));
     }
 
     // public function store(Request $request)
@@ -85,6 +91,8 @@ class CustomerController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
+        $business_id = request()->session()->get('user.business_id');
+
         $request->validate([
             'name' => 'required_without:contact_id|string|max:255',
             'phone' => 'required_without:contact_id|string|max:50',
@@ -106,14 +114,18 @@ class CustomerController extends Controller
             'tada_bill_amount' => 'nullable|numeric|min:0',
             'monthly_target_amount' => 'nullable|numeric|min:0',
             'commission_percent' => 'nullable|numeric|min:0|max:100',
+            'stock_owner_customer_id' => [
+                'nullable',
+                Rule::exists('customers', 'id')->where(function ($query) use ($business_id) {
+                    $query->where('business_id', $business_id);
+                }),
+            ],
             'day_locations' => 'nullable|array',
             'day_locations.*.location_name' => 'nullable|string|max:255',
             'day_locations.*.latitude' => 'nullable|numeric|between:-90,90',
             'day_locations.*.longitude' => 'nullable|numeric|between:-180,180',
             'day_locations.*.allowed_radius_meters' => 'nullable|integer|min:10|max:5000',
         ]);
-
-        $business_id = request()->session()->get('user.business_id');
 
         $data = [
             'business_id' => $business_id,
@@ -133,6 +145,7 @@ class CustomerController extends Controller
             'tada_bill_amount' => $request->tada_bill_amount ?? 0,
             'monthly_target_amount' => $request->monthly_target_amount ?? 0,
             'commission_percent' => $request->commission_percent ?? 0,
+            'stock_owner_customer_id' => $request->filled('stock_owner_customer_id') ? $request->stock_owner_customer_id : null,
         ];
 
         if ($request->filled('contact_id')) {
@@ -167,7 +180,7 @@ class CustomerController extends Controller
     // }
     public function show(Request $request, $id)
     {
-        $customer = Customer::with(['stocks.product'])
+        $customer = Customer::with(['stocks.product', 'stockOwner.stocks.product'])
             ->findOrFail($id);
     
         if ($customer->business_id != request()->session()->get('user.business_id')) {
@@ -176,6 +189,7 @@ class CustomerController extends Controller
     
         // ✅ Build sales query separately
         $salesQuery = CustomerSale::where('customer_id', $id);
+        $stockCustomer = Customer::with(['stocks.product'])->findOrFail($customer->resolved_stock_owner_id);
     
         // ✅ Date filter
         if ($request->from_date && $request->to_date) {
@@ -190,7 +204,7 @@ class CustomerController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(10);
     
-        return view('distribution.customers.show', compact('customer', 'sales'));
+        return view('distribution.customers.show', compact('customer', 'sales', 'stockCustomer'));
     }
     public function edit($id)
     {
@@ -204,7 +218,12 @@ class CustomerController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
-        return view('distribution.customers.edit', compact('customer'));
+        $business_id = request()->session()->get('user.business_id');
+        $customers = Customer::where('business_id', $business_id)
+            ->orderBy('name')
+            ->get();
+
+        return view('distribution.customers.edit', compact('customer', 'customers'));
     }
 
     public function update(Request $request, $id)
@@ -212,6 +231,8 @@ class CustomerController extends Controller
         if (! auth()->user()->can('customer.create')) {
             abort(403, 'Unauthorized action.');
         }
+
+        $business_id = request()->session()->get('user.business_id');
 
         $customer = Customer::findOrFail($id);
 
@@ -238,6 +259,12 @@ class CustomerController extends Controller
             'tada_bill_amount' => 'nullable|numeric|min:0',
             'monthly_target_amount' => 'nullable|numeric|min:0',
             'commission_percent' => 'nullable|numeric|min:0|max:100',
+            'stock_owner_customer_id' => [
+                'nullable',
+                Rule::exists('customers', 'id')->where(function ($query) use ($business_id) {
+                    $query->where('business_id', $business_id);
+                }),
+            ],
             'day_locations' => 'nullable|array',
             'day_locations.*.location_name' => 'nullable|string|max:255',
             'day_locations.*.latitude' => 'nullable|numeric|between:-90,90',
@@ -263,6 +290,7 @@ class CustomerController extends Controller
             'tada_bill_amount' => $request->tada_bill_amount ?? 0,
             'monthly_target_amount' => $request->monthly_target_amount ?? 0,
             'commission_percent' => $request->commission_percent ?? 0,
+            'stock_owner_customer_id' => $request->filled('stock_owner_customer_id') ? $request->stock_owner_customer_id : null,
         ];
 
         if ($request->filled('password')) {

@@ -18,7 +18,8 @@ class StockController extends Controller
 
     public function index(): JsonResponse
     {
-        $customerId = auth()->id();
+        $customer = auth()->user();
+        $customerId = (int) ($customer->resolved_stock_owner_id ?? $customer->id);
         $stocks = $this->customerStockRepository->getCustomerStocks($customerId);
 
         return response()->json([
