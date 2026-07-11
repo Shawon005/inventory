@@ -2,7 +2,104 @@
 @section('title', __('home.home'))
 
 @section('content')
+<style>
+  .alert-popup {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    max-width: 360px;
+    background: #fff3f3;
+    border: 1px solid #ff4d4d;
+    border-left: 6px solid #ff0000;
+    border-radius: 10px;
+    padding: 16px 40px 16px 16px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+    z-index: 9999;
+    font-size: 14px;
+    color: #333;
+  }
 
+  .alert-popup .close-btn {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    background: transparent;
+    border: none;
+    font-size: 18px;
+    font-weight: bold;
+    color: #ff0000;
+    cursor: pointer;
+  }
+
+  .alert-popup .close-btn:hover {
+    color: #b30000;
+  }
+
+  .alert-popup h3 {
+    margin: 0 0 8px 0;
+    color: #cc0000;
+    font-size: 16px;
+  }
+
+  .alert-popup p {
+    margin: 4px 0;
+    line-height: 1.5;
+  }
+
+  .timer {
+    margin-top: 10px;
+    font-weight: bold;
+    color: #cc0000;
+    font-size: 15px;
+    background: #ffe0e0;
+    padding: 6px 10px;
+    border-radius: 6px;
+    display: inline-block;
+  }
+</style>
+<div class="alert-popup" id="renewalPopup">
+  <button class="close-btn" onclick="closePopup()">&times;</button>
+  <h3>⚠️ Hosting & Domain Renewal Notice</h3>
+  <p>
+    <strong>English:</strong> Your hosting and domain plan payment is close to ending. 
+    After 3 days, this site will be closed.
+  </p>
+  <p>
+    <strong>বাংলা:</strong> আপনার হোস্টিং এবং ডোমেইন প্ল্যানের পেমেন্টের মেয়াদ শেষ হতে চলেছে। 
+    ৩ দিন পর এই সাইটটি বন্ধ হয়ে যাবে।
+  </p>
+  <div class="timer" id="countdownTimer">Loading timer...</div>
+</div>
+<script>
+  // Set deadline = 3 days from now
+  const deadline = new Date();
+  deadline.setDate(deadline.getDate() + 3);
+
+  function updateCountdown() {
+    const now = new Date();
+    const diff = deadline - now;
+
+    if (diff <= 0) {
+      document.getElementById("countdownTimer").innerText = "Time expired! / সময় শেষ!";
+      return;
+    }
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+    const minutes = Math.floor((diff / (1000 * 60)) % 60);
+    const seconds = Math.floor((diff / 1000) % 60);
+
+    document.getElementById("countdownTimer").innerText =
+      `⏳ ${days}d ${hours}h ${minutes}m ${seconds}s left`;
+  }
+
+  setInterval(updateCountdown, 1000);
+  updateCountdown();
+
+  function closePopup() {
+    document.getElementById("renewalPopup").style.display = "none";
+  }
+</script>
     <div class="tw-pb-6 tw-bg-gradient-to-br tw-from-@if(!empty(session('business.theme_color'))){{session('business.theme_color')}}@else{{'primary'}}@endif-800 tw-to-@if(!empty(session('business.theme_color'))){{session('business.theme_color')}}@else{{'primary'}}@endif-900 xl:tw-pb-4 ">
         <div class="tw-px-5 tw-pt-3">
             {{-- <div class="sm:tw-flex sm:tw-items-center sm:tw-justify-between sm:tw-gap-12">

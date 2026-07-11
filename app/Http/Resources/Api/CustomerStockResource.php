@@ -26,6 +26,7 @@ class CustomerStockResource extends JsonResource
         }
 
         return [
+            'product_id' => $product->id,
             'product_name' => $product->name ?? null,
             'category_id' => $categoryId,
             'category_name' => $categoryName,
