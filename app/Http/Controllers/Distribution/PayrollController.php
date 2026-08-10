@@ -110,8 +110,7 @@ class PayrollController extends Controller
                 $start->copy()->startOfDay()->toDateTimeString(),
                 $end->copy()->endOfDay()->toDateTimeString(),
             ])
-            ->selectRaw('COALESCE(SUM(sale_price * quantity), 0) as total_sales')
-            ->value('total_sales');
+            ->sum('sale_price');
 
         $monthlyTargetAmount = (float) ($customer->monthly_target_amount ?? 0);
         $commissionPercent = (float) ($customer->commission_percent ?? 0);

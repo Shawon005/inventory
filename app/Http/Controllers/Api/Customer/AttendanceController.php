@@ -48,27 +48,45 @@ class AttendanceController extends Controller
             }
         }
 
-        $distance = null;
-        $withinRadius = false;
-        $workLocation = CustomerWorkLocation::where('customer_id', $customer->id)
-            ->where('weekday', $weekday)
-            ->where('is_active', true)
-            ->first();
+        if ($request->type === 'in') {
+            $workLocation = CustomerWorkLocation::where('customer_id', $customer->id)
+                ->where('weekday', $weekday)
+                ->where('is_active', true)
+                ->first();
 
-        if (! $workLocation) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No approved work location set for today. Contact admin.',
-            ], 422);
+            if (! $workLocation) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No approved work location set for today. Contact admin.',
+                ], 422);
+            }
+
+            $targetLatitude = (float) $workLocation->latitude;
+            $targetLongitude = (float) $workLocation->longitude;
+            $allowedRadius = (int) ($workLocation->allowed_radius_meters ?? 100);
+            $targetLocationName = $workLocation->location_name;
+            $locationSource = 'weekly_work_location';
+        } else {
+            if (is_null($customer->work_latitude) || is_null($customer->work_longitude)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No check-out location set for this customer. Contact admin.',
+                ], 422);
+            }
+
+            $targetLatitude = (float) $customer->work_latitude;
+            $targetLongitude = (float) $customer->work_longitude;
+            $allowedRadius = (int) ($customer->allowed_radius_meters ?? 100);
+            $targetLocationName = $customer->attendance_location;
+            $locationSource = 'customer_work_location';
         }
 
         $distance = $this->distanceService->calculateMeters(
-            (float) $workLocation->latitude,
-            (float) $workLocation->longitude,
+            $targetLatitude,
+            $targetLongitude,
             (float) $request->latitude,
             (float) $request->longitude
         );
-        $allowedRadius = (int) ($workLocation->allowed_radius_meters ?? 100);
         $withinRadius = $distance <= $allowedRadius;
 
         if (! $withinRadius) {
@@ -114,14 +132,18 @@ class AttendanceController extends Controller
         $dailyAttendance->image_path = $imagePath ?: $dailyAttendance->image_path;
         $meta = array_merge((array) $dailyAttendance->meta, [
             'user_agent' => request()->userAgent(),
-            'work_location' => [
-                'day' => $weekday,
-                'name' => $workLocation->location_name,
-                'latitude' => $workLocation->latitude,
-                'longitude' => $workLocation->longitude,
-                'allowed_radius_meters' => $allowedRadius,
-            ],
         ]);
+
+        if ($request->type === 'in') {
+            $meta['work_location'] = [
+                'day' => $weekday,
+                'name' => $targetLocationName,
+                'latitude' => $targetLatitude,
+                'longitude' => $targetLongitude,
+                'allowed_radius_meters' => $allowedRadius,
+                'source' => $locationSource,
+            ];
+        }
 
         if ($request->type === 'out') {
             $meta['checkout'] = [
@@ -130,6 +152,13 @@ class AttendanceController extends Controller
                 'distance_meters' => (float) $distance,
                 'matched_work_location' => (bool) $withinRadius,
                 'checked_out_at' => $now->toIso8601String(),
+                'target_location' => [
+                    'name' => $targetLocationName,
+                    'latitude' => $targetLatitude,
+                    'longitude' => $targetLongitude,
+                    'allowed_radius_meters' => $allowedRadius,
+                    'source' => $locationSource,
+                ],
             ];
         }
 
