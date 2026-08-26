@@ -192,7 +192,10 @@
             <div class="grid-2" style="margin-top:0;">
                 <div class="col">
                     <p class="company-name">{{ optional($payroll['customer']->business)->name ?? config('app.name') }}</p>
-                    <p class="muted" style="margin:0;">Attendance Location: {{ $payroll['customer']->attendance_location ?: '-' }}</p>
+                    <p class="muted" style="margin:0;">Employee Type: {{ strtoupper($payroll['customer']->employee_type ?? 'sr') }}</p>
+                    @if($payroll['uses_attendance'])
+                        <p class="muted" style="margin:2px 0 0;">Attendance Location: {{ $payroll['customer']->attendance_location ?: '-' }}</p>
+                    @endif
                 </div>
                 <div class="col text-right">
                     <h1 class="slip-title">Salary Slip</h1>
@@ -214,12 +217,14 @@
                             <div class="kv-label">Employee Code</div>
                             <div class="kv-value">{{ $payroll['customer']->employee_id ?? ('EMP-' . $payroll['customer']->id) }}</div>
                         </div>
+                        @if($payroll['uses_attendance'])
                         <div class="kv-row">
                             <div class="kv-label">Shift Time</div>
                             <div class="kv-value">
                                 {{ $payroll['customer']->shift_start_time ?: '-' }} to {{ $payroll['customer']->shift_end_time ?: '-' }}
                             </div>
                         </div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -244,6 +249,7 @@
             </div>
         </div>
 
+        @if($payroll['uses_attendance'])
         <table class="salary-table">
             <thead>
                 <tr>
@@ -303,12 +309,22 @@
                 </tr>
             </tbody>
         </table>
+        @else
+        <table class="salary-table">
+            <thead><tr><th>Earnings</th><th class="text-right">Amount</th></tr></thead>
+            <tbody>
+                <tr><td>Base Salary</td><td class="text-right">@format_currency($payroll['base_salary'])</td></tr>
+                <tr><th>Total Earnings</th><th class="text-right">@format_currency($payroll['gross_earnings'])</th></tr>
+            </tbody>
+        </table>
+        @endif
 
         <div class="amount-highlight">
             <div class="label">Net Payable</div>
             <div class="value">@format_currency($payroll['net_payable'])</div>
         </div>
 
+        @if($payroll['uses_attendance'])
         <table class="attendance-summary">
             <thead>
                 <tr>
@@ -338,6 +354,7 @@
             <thead>
                 <tr>
                     <th>Date</th>
+                    <th>Type</th>
                     <th>Check In</th>
                     <th>Check Out</th>
                     <th>Worked (Hr)</th>
@@ -350,6 +367,7 @@
                 @forelse($payroll['daily_rows'] as $day)
                     <tr>
                         <td>{{ \Carbon\Carbon::parse($day['date'])->format('d M Y') }}</td>
+                        <td>{{ $day['description'] }}</td>
                         <td>{{ $day['in_time'] ? @format_datetime($day['in_time']) : '-' }}</td>
                         <td>{{ $day['out_time'] ? @format_datetime($day['out_time']) : '-' }}</td>
                         <td class="text-right">{{ $day['worked_hours'] }}</td>
@@ -359,11 +377,14 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="text-center">No attendance data for this month</td>
+                        <td colspan="8" class="text-center">No attendance data for this month</td>
                     </tr>
                 @endforelse
             </tbody>
         </table>
+        @else
+        <p class="muted">Attendance is not required for this DSR employee. No attendance deduction or overtime calculation applies.</p>
+        @endif
 
         <div class="footer-note">
             This is a system-generated salary slip.

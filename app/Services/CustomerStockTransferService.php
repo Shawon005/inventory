@@ -104,6 +104,10 @@ class CustomerStockTransferService
             return $customerId;
         }
 
+        if ($customer->employee_type === \App\Customer::TYPE_DSR) {
+            throw new \InvalidArgumentException('DSR employees cannot own or receive stock.');
+        }
+
         return (int) $customer->resolved_stock_owner_id;
     }
     public function reverseTransfer(CustomerStockTransfer $transfer): void

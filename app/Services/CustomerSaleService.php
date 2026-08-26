@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\CustomerSale;
+use App\ShopOwner;
 use App\Repositories\Contracts\CustomerSaleRepositoryInterface;
 use App\Repositories\Contracts\CustomerStockRepositoryInterface;
 use Illuminate\Support\Facades\DB;
@@ -34,6 +35,17 @@ class CustomerSaleService
             $soldTo = $data['sold_to'] ?? null;
             $resalerAddress = $data['resaler_address'] ?? null;
             $resalerPhone = $data['resaler_phone'] ?? null;
+            $shopOwner = $this->resolveShopOwner(
+                $data['shop_owner_id'] ?? null,
+                $customerId,
+                $soldTo,
+                $resalerPhone
+            );
+            if ($shopOwner) {
+                $soldTo = $shopOwner->name;
+                $resalerAddress = $shopOwner->address;
+                $resalerPhone = optional($shopOwner->phones->first())->phone;
+            }
             $paymentMethod = $data['payment_method'] ?? null;
             $status = $this->normalizeStatus($data['status'] ?? self::STATUS_ORDERED);
 
@@ -43,6 +55,7 @@ class CustomerSaleService
 
             $sales = $this->customerSaleRepository->create([
                 'customer_id'     => $customerId,
+                'shop_owner_id'   => optional($shopOwner)->id,
                 'product_id'      => (int) $items[0]['product_id'],
                 'quantity'        => $this->sumQuantity($items),
                 'items'           => json_encode($items),
@@ -81,6 +94,10 @@ class CustomerSaleService
                 $payload['quantity'] = $this->sumQuantity($newItems);
             }
             if (array_key_exists('sale_price', $data)) {
+                if ((float) $data['sale_price'] < (float) ($sale->return_amount ?? 0)) {
+                    throw new \Exception('Order amount cannot be less than the return amount.');
+                }
+
                 $payload['sale_price'] = (float) $data['sale_price'];
             }
             if (array_key_exists('discount', $data)) {
@@ -91,6 +108,15 @@ class CustomerSaleService
             }
             if (array_key_exists('sold_to', $data)) {
                 $payload['sold_to'] = $data['sold_to'];
+            }
+            if (array_key_exists('shop_owner_id', $data)) {
+                $shopOwner = $this->resolveShopOwner($data['shop_owner_id'], (int) $sale->customer_id);
+                $payload['shop_owner_id'] = optional($shopOwner)->id;
+                if ($shopOwner) {
+                    $payload['sold_to'] = $shopOwner->name;
+                    $payload['resaler_address'] = $shopOwner->address;
+                    $payload['resaler_phone'] = optional($shopOwner->phones->first())->phone;
+                }
             }
 
             return $this->customerSaleRepository->update($sale, $payload);
@@ -125,6 +151,35 @@ class CustomerSaleService
     }
 
     /**
+     * Record a partial or full value return for a delivered sale.
+     *
+     * @throws \Exception
+     */
+    public function returnSale(CustomerSale $sale, string $reason, float $returnAmount): CustomerSale
+    {
+        return DB::transaction(function () use ($sale, $reason, $returnAmount) {
+            if ($this->currentStatus($sale) !== self::STATUS_DELIVERED) {
+                throw new \Exception('Only delivered sales can be returned.');
+            }
+
+            $orderAmount = (float) $sale->sale_price;
+            if ($returnAmount <= 0) {
+                throw new \Exception('Return amount must be greater than zero.');
+            }
+
+            if ($returnAmount > $orderAmount) {
+                throw new \Exception('Return amount cannot be greater than the order amount.');
+            }
+
+            return $this->customerSaleRepository->update($sale, [
+                'return_reason' => trim($reason),
+                'return_amount' => $returnAmount,
+                'returned_at' => now(),
+            ]);
+        });
+    }
+
+    /**
      * @throws \Exception
      */
     public function deleteSale(CustomerSale $sale): void
@@ -154,6 +209,39 @@ class CustomerSaleService
         }
 
         return $normalized;
+    }
+
+    private function resolveShopOwner($shopOwnerId, int $customerId, ?string $soldTo = null, ?string $phone = null): ?ShopOwner
+    {
+        $query = ShopOwner::with('phones')->where('distributor_id', $customerId);
+
+        if (! empty($shopOwnerId)) {
+            $owner = $query->find($shopOwnerId);
+
+            if (! $owner) {
+                throw new \Exception('The selected shop owner does not belong to this sales representative.');
+            }
+
+            return $owner;
+        }
+
+        $soldTo = trim((string) $soldTo);
+        $phone = trim((string) $phone);
+        if ($soldTo === '' && $phone === '') {
+            return null;
+        }
+
+        $owner = $query->where(function ($query) use ($soldTo, $phone) {
+            if ($soldTo !== '') {
+                $query->where('name', $soldTo);
+            }
+            if ($phone !== '') {
+                $method = $soldTo !== '' ? 'orWhereHas' : 'whereHas';
+                $query->{$method}('phones', fn ($query) => $query->where('phone', $phone));
+            }
+        })->first();
+
+        return $owner;
     }
 
     private function normalizeStatus(string $status): string
@@ -304,6 +392,10 @@ class CustomerSaleService
 
         if (! $customer) {
             return $customerId;
+        }
+
+        if ($customer->employee_type === \App\Customer::TYPE_DSR) {
+            throw new \InvalidArgumentException('DSR employees cannot own stock or record sales.');
         }
 
         return (int) $customer->resolved_stock_owner_id;

@@ -11,6 +11,7 @@ use App\PurchaseLine;
 use App\Transaction;
 use App\TransactionPayment;
 use App\User;
+use App\Zone;
 use App\Utils\ContactUtil;
 use App\Utils\ModuleUtil;
 use App\Utils\NotificationUtil;
@@ -19,6 +20,7 @@ use App\Utils\Util;
 use DB;
 use Excel;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Spatie\Activitylog\Models\Activity;
 use Yajra\DataTables\Facades\DataTables;
 use App\Events\ContactCreatedOrModified;
@@ -559,6 +561,7 @@ class ContactController extends Controller
         }
 
         $customer_groups = CustomerGroup::forDropdown($business_id);
+        $zones = Zone::forDropdown($business_id);
         $selected_type = request()->type;
 
         $module_form_parts = $this->moduleUtil->getModuleData('contact_form_part');
@@ -567,7 +570,7 @@ class ContactController extends Controller
         $users = config('constants.enable_contact_assign') ? User::forDropdown($business_id, false, false, false, true) : [];
 
         return view('contact.create')
-            ->with(compact('types', 'customer_groups', 'selected_type', 'module_form_parts', 'users'));
+            ->with(compact('types', 'customer_groups', 'zones', 'selected_type', 'module_form_parts', 'users'));
     }
 
     /**
@@ -582,15 +585,21 @@ class ContactController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
+        $business_id = $request->session()->get('user.business_id');
+        $this->validateContactZone($request, $business_id);
+
         try {
-            $business_id = $request->session()->get('user.business_id');
 
             if (! $this->moduleUtil->isSubscribed($business_id)) {
                 return $this->moduleUtil->expiredResponse();
             }
 
             $input = $request->only(['type', 'supplier_business_name',
-                'prefix', 'first_name', 'middle_name', 'last_name', 'tax_number', 'pay_term_number', 'pay_term_type', 'mobile', 'landline', 'alternate_number', 'city', 'state', 'country', 'address_line_1', 'address_line_2', 'customer_group_id', 'zip_code', 'contact_id', 'custom_field1', 'custom_field2', 'custom_field3', 'custom_field4', 'custom_field5', 'custom_field6', 'custom_field7', 'custom_field8', 'custom_field9', 'custom_field10', 'email', 'shipping_address', 'position', 'dob', 'shipping_custom_field_details', 'assigned_to_users', 'land_mark', 'street_name', 'building_number', 'additional_number', 'customer_discount_percent']);
+                'prefix', 'first_name', 'middle_name', 'last_name', 'tax_number', 'pay_term_number', 'pay_term_type', 'mobile', 'landline', 'alternate_number', 'city', 'state', 'country', 'address_line_1', 'address_line_2', 'customer_group_id', 'zone_id', 'zip_code', 'contact_id', 'custom_field1', 'custom_field2', 'custom_field3', 'custom_field4', 'custom_field5', 'custom_field6', 'custom_field7', 'custom_field8', 'custom_field9', 'custom_field10', 'email', 'shipping_address', 'position', 'dob', 'shipping_custom_field_details', 'assigned_to_users', 'land_mark', 'street_name', 'building_number', 'additional_number', 'customer_discount_percent']);
+
+            if (! in_array($input['type'], ['customer', 'both'])) {
+                $input['zone_id'] = null;
+            }
 
             $name_array = [];
 
@@ -741,6 +750,7 @@ class ContactController extends Controller
             }
 
             $customer_groups = CustomerGroup::forDropdown($business_id);
+            $zones = Zone::forDropdown($business_id, $contact->zone_id);
 
             $ob_transaction = Transaction::where('contact_id', $id)
                                             ->where('type', 'opening_balance')
@@ -761,7 +771,7 @@ class ContactController extends Controller
             $users = config('constants.enable_contact_assign') ? User::forDropdown($business_id, false, false, false, true) : [];
 
             return view('contact.edit')
-                ->with(compact('contact', 'types', 'customer_groups', 'opening_balance', 'users'));
+                ->with(compact('contact', 'types', 'customer_groups', 'zones', 'opening_balance', 'users'));
         }
     }
 
@@ -779,9 +789,17 @@ class ContactController extends Controller
         }
 
         if (request()->ajax()) {
+            $business_id = $request->session()->get('user.business_id');
+            $existingContact = Contact::where('business_id', $business_id)->findOrFail($id);
+            $this->validateContactZone($request, $business_id, $existingContact->zone_id);
+
             try {
-                $input = $request->only(['type', 'supplier_business_name', 'prefix', 'first_name', 'middle_name', 'last_name', 'tax_number', 'pay_term_number', 'pay_term_type', 'mobile', 'address_line_1', 'address_line_2', 'zip_code', 'dob', 'alternate_number', 'city', 'state', 'country', 'landline', 'customer_group_id', 'contact_id', 'custom_field1', 'custom_field2', 'custom_field3', 'custom_field4', 'custom_field5', 'custom_field6', 'custom_field7', 'custom_field8', 'custom_field9', 'custom_field10', 'email', 'shipping_address', 'position', 'shipping_custom_field_details', 'export_custom_field_1', 'export_custom_field_2', 'export_custom_field_3', 'export_custom_field_4', 'export_custom_field_5',
+                $input = $request->only(['type', 'supplier_business_name', 'prefix', 'first_name', 'middle_name', 'last_name', 'tax_number', 'pay_term_number', 'pay_term_type', 'mobile', 'address_line_1', 'address_line_2', 'zone_id', 'zip_code', 'dob', 'alternate_number', 'city', 'state', 'country', 'landline', 'customer_group_id', 'contact_id', 'custom_field1', 'custom_field2', 'custom_field3', 'custom_field4', 'custom_field5', 'custom_field6', 'custom_field7', 'custom_field8', 'custom_field9', 'custom_field10', 'email', 'shipping_address', 'position', 'shipping_custom_field_details', 'export_custom_field_1', 'export_custom_field_2', 'export_custom_field_3', 'export_custom_field_4', 'export_custom_field_5',
                     'export_custom_field_6', 'assigned_to_users', 'land_mark', 'street_name', 'building_number', 'additional_number', 'customer_discount_percent']);
+
+                if (! in_array($input['type'], ['customer', 'both'])) {
+                    $input['zone_id'] = null;
+                }
 
                 $name_array = [];
 
@@ -816,8 +834,6 @@ class ContactController extends Controller
 
                 $input['credit_limit'] = $request->input('credit_limit') != '' ? $this->commonUtil->num_uf($request->input('credit_limit')) : null;
                 $input['customer_discount_percent'] = $request->input('customer_discount_percent') != '' ? $this->commonUtil->num_uf($request->input('customer_discount_percent')) : null;
-
-                $business_id = $request->session()->get('user.business_id');
 
                 $input['opening_balance'] = $this->commonUtil->num_uf($request->input('opening_balance'));
 
@@ -1721,5 +1737,27 @@ class ContactController extends Controller
             'is_tax_number_exists' => ! empty($contacts),
             'msg' => ! empty($contacts) ? __('lang_v1.tax_number_already_registered', ['contacts' => implode(', ', $contacts), 'tax_number' => $tax_number]) : '',
         ];
+    }
+
+    protected function validateContactZone(Request $request, int $businessId, ?int $currentZoneId = null): void
+    {
+        if (! in_array($request->input('type'), ['customer', 'both'])) {
+            return;
+        }
+
+        $zoneRule = Rule::exists('zones', 'id')->where(function ($query) use ($businessId, $currentZoneId) {
+            $query->where('business_id', $businessId)
+                ->where(function ($query) use ($currentZoneId) {
+                    $query->where('is_active', true);
+                    if ($currentZoneId) {
+                        $query->orWhere('id', $currentZoneId);
+                    }
+                });
+        });
+
+        $request->validate(
+            ['zone_id' => ['required', $zoneRule]],
+            ['zone_id.required' => 'Please select a zone for this customer.']
+        );
     }
 }

@@ -56,6 +56,7 @@ use App\Http\Controllers\Distribution\AttendanceController as DistributionAttend
 use App\Http\Controllers\Distribution\HolidayController as DistributionHolidayController;
 use App\Http\Controllers\Distribution\LeaveRequestController as DistributionLeaveRequestController;
 use App\Http\Controllers\Distribution\PayrollController as DistributionPayrollController;
+use App\Http\Controllers\Distribution\ShopOwnerController as DistributionShopOwnerController;
 use App\Http\Controllers\Distribution\CustomerStockTransferController;
 use App\Http\Controllers\Distribution\CustomerTrackingController;
 use App\Http\Controllers\TaxonomyController;
@@ -67,6 +68,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\VariationTemplateController;
 use App\Http\Controllers\WarrantyController;
 use App\Http\Controllers\LanguageController;
+use App\Http\Controllers\ZoneController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -326,6 +328,9 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::post('business-location/check-location-id', [BusinessLocationController::class, 'checkLocationId']);
     Route::resource('business-location', BusinessLocationController::class);
 
+    //Zones under business locations...
+    Route::resource('zones', ZoneController::class)->except(['show']);
+
     //Invoice layouts..
     Route::resource('invoice-layouts', InvoiceLayoutController::class);
 
@@ -373,7 +378,13 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::resource('stock-transfers', StockTransferController::class);
 
     // Distribution - Customer Management & Stock Transfers
+    Route::resource('distribution/shop-owners', DistributionShopOwnerController::class)
+        ->except(['destroy'])
+        ->names('distribution.shop-owners');
+    Route::post('distribution/customers/{customer}/profile-image', [DistributionCustomerController::class, 'updateProfileImage'])->name('distribution.customers.profile-image.update');
     Route::resource('distribution/customers', DistributionCustomerController::class);
+    Route::get('distribution/customers/{customer}/sales-report/daily', [DistributionCustomerController::class, 'dailySalesReport'])->name('distribution.customers.sales-report.daily');
+    Route::get('distribution/customers/{customer}/sales-report/monthly', [DistributionCustomerController::class, 'monthlySalesReport'])->name('distribution.customers.sales-report.monthly');
     Route::get('distribution/stock-transfers', [CustomerStockTransferController::class, 'index'])->name('distribution.stock-transfers.index');
     Route::get('distribution/stock-transfers/create', [CustomerStockTransferController::class, 'create'])->name('distribution.stock-transfers.create');
     Route::post('distribution/stock-transfers', [CustomerStockTransferController::class, 'store'])->name('distribution.stock-transfers.store');
@@ -385,6 +396,7 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::get('distribution/tracking/latest', [CustomerTrackingController::class, 'getLatestLocation'])->name('distribution.tracking.latest');
     Route::get('distribution/attendance', [DistributionAttendanceController::class, 'index'])->name('distribution.attendance.index');
     Route::post('distribution/attendance/{attendance}/tada-bill', [DistributionAttendanceController::class, 'updateTadaBill'])->name('distribution.attendance.tada-bill.update');
+    Route::post('distribution/attendance/holiday-tada/{customer}/{holidayDate}', [DistributionAttendanceController::class, 'updateHolidayTada'])->name('distribution.attendance.holiday-tada.update');
     Route::post('distribution/attendance/{attendance}/approve-late', [DistributionAttendanceController::class, 'approveLateAttendance'])->name('distribution.attendance.approve-late');
     Route::post('distribution/attendance/{attendance}/reject-late', [DistributionAttendanceController::class, 'rejectLateAttendance'])->name('distribution.attendance.reject-late');
     Route::resource('distribution/holidays', DistributionHolidayController::class)

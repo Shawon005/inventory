@@ -523,6 +523,11 @@ $(document).ready(function() {
 
     //On display of add contact modal
     $('.contact_modal').on('shown.bs.modal', function(e) {
+        var toggleContactZoneRequirement = function() {
+            var type = $('select#contact_type').val();
+            $('#contact_zone_id').prop('required', type === 'customer' || type === 'both');
+        };
+
         $('input[type=radio][name="contact_type_radio"]').on('change', function() {
             if (this.value == 'individual') {
                 $('div.individual').show();
@@ -562,6 +567,7 @@ $(document).ready(function() {
             $('div.lead_additional_div').show();
             $('div.shipping_addr_div').hide();
         }
+        toggleContactZoneRequirement();
 
         $('select#contact_type').change(function() {
             var t = $(this).val();
@@ -583,6 +589,7 @@ $(document).ready(function() {
                 $('div.lead_additional_div').fadeIn();
                 $('div.shipping_addr_div').hide();
             }
+            toggleContactZoneRequirement();
         });
 
         $(".contact_modal").find('.select2').each( function(){

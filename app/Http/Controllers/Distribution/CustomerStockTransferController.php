@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Services\CustomerStockTransferService;
 use App\Variation;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class CustomerStockTransferController extends Controller
 {
@@ -34,7 +35,11 @@ class CustomerStockTransferController extends Controller
     public function create()
     {
         $business_id = request()->session()->get('user.business_id');
-        $customers = Customer::where('business_id', $business_id)->active()->orderBy('name')->get();
+        $customers = Customer::where('business_id', $business_id)
+            ->where('employee_type', Customer::TYPE_SR)
+            ->active()
+            ->orderBy('name')
+            ->get();
         $locations = \App\BusinessLocation::where('business_id', $business_id)->get();
 
         return view('distribution.stock_transfers.create', compact('customers', 'locations'));
@@ -43,7 +48,13 @@ class CustomerStockTransferController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'customer_id' => 'required|exists:customers,id',
+            'customer_id' => [
+                'required',
+                Rule::exists('customers', 'id')->where(function ($query) {
+                    $query->where('business_id', request()->session()->get('user.business_id'))
+                        ->where('employee_type', Customer::TYPE_SR);
+                }),
+            ],
             'product_id' => 'required|exists:products,id',
             'variation_id' => 'nullable|exists:variations,id',
             'location_id' => 'required|exists:business_locations,id',
@@ -87,7 +98,11 @@ class CustomerStockTransferController extends Controller
             abort(403, 'Unauthorized action.');
         }
         
-        $customers = \App\Customer::where('business_id', $business_id)->active()->orderBy('name')->get();
+        $customers = Customer::where('business_id', $business_id)
+            ->where('employee_type', Customer::TYPE_SR)
+            ->active()
+            ->orderBy('name')
+            ->get();
         $locations = \App\BusinessLocation::where('business_id', $business_id)->get();
         
         return view('distribution.stock_transfers.edit', compact('transfer', 'customers', 'locations'));
@@ -104,7 +119,13 @@ class CustomerStockTransferController extends Controller
         }
         
         $request->validate([
-            'customer_id' => 'required|exists:customers,id',
+            'customer_id' => [
+                'required',
+                Rule::exists('customers', 'id')->where(function ($query) use ($business_id) {
+                    $query->where('business_id', $business_id)
+                        ->where('employee_type', Customer::TYPE_SR);
+                }),
+            ],
             'product_id' => 'required|exists:products,id',
             'variation_id' => 'nullable|exists:variations,id',
             'location_id' => 'required|exists:business_locations,id',

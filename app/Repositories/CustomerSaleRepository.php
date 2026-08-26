@@ -5,6 +5,8 @@ namespace App\Repositories;
 use App\CustomerSale;
 use App\Repositories\Contracts\CustomerSaleRepositoryInterface;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+
 class CustomerSaleRepository implements CustomerSaleRepositoryInterface
 {
     public function create(array $data): CustomerSale
@@ -72,6 +74,6 @@ class CustomerSaleRepository implements CustomerSaleRepositoryInterface
         return (float) CustomerSale::where('customer_id', $customerId)
             ->whereDate('created_at', '>=', $fromDate)
             ->whereDate('created_at', '<=', $toDate)
-            ->sum('sale_price');
+            ->sum(DB::raw('sale_price - COALESCE(return_amount, 0)'));
     }
 }

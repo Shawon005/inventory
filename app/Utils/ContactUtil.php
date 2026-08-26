@@ -73,7 +73,7 @@ class ContactUtil extends Util
         $contact = Contact::where('contacts.id', $contact_id)
                     ->where('contacts.business_id', $business_id)
                     ->leftjoin('transactions AS t', 'contacts.id', '=', 't.contact_id')
-                    ->with(['business'])
+                    ->with(['business', 'zone.businessLocation'])
                     ->select(
                         DB::raw("SUM(IF(t.type = 'purchase', final_total, 0)) as total_purchase"),
                         DB::raw("SUM(IF(t.type = 'sell' AND t.status = 'final', final_total, 0)) as total_invoice"),

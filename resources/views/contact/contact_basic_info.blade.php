@@ -22,6 +22,17 @@
     </p>
 @endif
 
+@if(in_array($contact->type, ['customer', 'both']))
+    <strong><i class="fa fa-map-marker margin-r-5"></i> Zone</strong>
+    <p class="text-muted">
+        @if($contact->zone)
+            {{ optional($contact->zone->businessLocation)->name }} - {{ $contact->zone->name }}
+        @else
+            -
+        @endif
+    </p>
+@endif
+
 <strong><i class="fa fa-mobile margin-r-5"></i> @lang('contact.mobile')</strong>
 <p class="text-muted">
     {{ $contact->mobile }}

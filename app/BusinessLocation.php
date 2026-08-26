@@ -95,6 +95,11 @@ class BusinessLocation extends Model
         return $this->belongsTo(\App\SellingPriceGroup::class, 'selling_price_group_id');
     }
 
+    public function zones()
+    {
+        return $this->hasMany(\App\Zone::class, 'location_id');
+    }
+
     /**
      * Scope a query to only include active location.
      *

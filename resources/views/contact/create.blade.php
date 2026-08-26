@@ -16,6 +16,7 @@
       $sources = [];
       $life_stages = [];
     }
+    $zone_options = $zones ?? \App\Zone::forDropdown((int) session('user.business_id'));
   @endphp
     {!! Form::open(['url' => $url, 'method' => 'post', 'id' => $form_id ]) !!}
 
@@ -70,6 +71,18 @@
                       </span>
                       {!! Form::select('customer_group_id', $customer_groups, '', ['class' => 'form-control']); !!}
                   </div>
+                </div>
+            </div>
+            <div class="col-md-4 customer_fields">
+                <div class="form-group">
+                    {!! Form::label('zone_id', 'Zone:*') !!}
+                    <div class="input-group">
+                        <span class="input-group-addon"><i class="fa fa-map-marker"></i></span>
+                        {!! Form::select('zone_id', $zone_options, old('zone_id'), ['class' => 'form-control', 'id' => 'contact_zone_id', 'placeholder' => __('messages.please_select')]); !!}
+                    </div>
+                    @if($zone_options->isEmpty())
+                        <p class="help-block text-danger">No active zones are available.</p>
+                    @endif
                 </div>
             </div>
             <div class="clearfix customer_fields"></div>

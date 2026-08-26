@@ -25,6 +25,13 @@ class AttendanceController extends Controller
     public function store(CustomerAttendanceStoreRequest $request): JsonResponse
     {
         $customer = auth()->user();
+        if (! $customer->uses_attendance) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Attendance is not required for DSR employees.',
+            ], 403);
+        }
+
         $timezone = optional($customer->business)->time_zone ?: config('app.timezone');
         $now = Carbon::now($timezone);
         $today = $now->toDateString();
@@ -187,6 +194,13 @@ class AttendanceController extends Controller
     public function details(Request $request): JsonResponse
     {
         $customer = auth()->user();
+        if (! $customer->uses_attendance) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Attendance is not required for DSR employees.',
+            ], 403);
+        }
+
         $timezone = optional($customer->business)->time_zone ?: config('app.timezone');
         $month = $request->input('month', Carbon::now($timezone)->format('Y-m'));
         $start = Carbon::parse($month.'-01', $timezone)->startOfMonth();

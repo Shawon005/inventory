@@ -33,6 +33,7 @@ class SaleController extends Controller
                 'sale_price' => $request->sale_price,
                 'discount' => $request->discount ?? 0,
                 'payment_method' => $request->payment_method,
+                'shop_owner_id' => $request->shop_owner_id,
                 'sold_to' => $request->sold_to,
                 'resaler_address' => $request->resaler_address,
                 'resaler_phone' => $request->resaler_phone,
@@ -61,6 +62,12 @@ class SaleController extends Controller
             'sale_price' => ['sometimes', 'numeric', 'min:0'],
             'discount' => ['sometimes', 'numeric', 'min:0'],
             'payment_method' => ['sometimes', 'nullable', 'string', 'max:191'],
+            'shop_owner_id' => [
+                'sometimes',
+                'nullable',
+                'integer',
+                Rule::exists('shop_owners', 'id')->where(fn ($query) => $query->where('distributor_id', auth()->id())),
+            ],
             'sold_to' => ['sometimes', 'nullable', 'string', 'max:255'],
         ]);
 
@@ -74,7 +81,7 @@ class SaleController extends Controller
 
         try {
             $updated = $this->customerSaleService->updateSale($sale, $request->only([
-                'items', 'sale_price', 'discount', 'payment_method', 'sold_to',
+                'items', 'sale_price', 'discount', 'payment_method', 'shop_owner_id', 'sold_to',
             ]));
 
             return response()->json([
@@ -110,6 +117,41 @@ class SaleController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Sale status updated successfully',
+                'data' => new CustomerSaleResource($updated->load('product')),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    public function returnSale(Request $request, int $id): JsonResponse
+    {
+        $request->validate([
+            'return_reason' => ['required', 'string', 'max:1000'],
+            'return_amount' => ['required', 'numeric', 'gt:0'],
+        ]);
+
+        $sale = $this->customerSaleRepository->findByIdAndCustomer($id, auth()->id());
+        if (! $sale) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Sale not found',
+            ], 404);
+        }
+
+        try {
+            $updated = $this->customerSaleService->returnSale(
+                $sale,
+                $request->return_reason,
+                (float) $request->return_amount
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Sale return recorded successfully',
                 'data' => new CustomerSaleResource($updated->load('product')),
             ]);
         } catch (\Exception $e) {
@@ -156,9 +198,17 @@ class SaleController extends Controller
             $toDate
         );
 
+        $summary = [
+            'order_amount' => (float) $sales->sum('order_amount'),
+            'delivery_amount' => (float) $sales->sum('delivery_amount'),
+            'return_amount' => (float) $sales->sum('return_amount'),
+            'total' => (float) $sales->sum('total_amount'),
+        ];
+
         return response()->json([
             'success' => true,
             'data' => CustomerSaleResource::collection($sales),
+            'summary' => $summary,
         ]);
     }
 }

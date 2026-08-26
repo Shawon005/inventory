@@ -101,7 +101,7 @@ class AdminSidebarMenu
                             $sub->url(
                                 action([\App\Http\Controllers\ContactController::class, 'index'], ['type' => 'customer']),
                                 __('report.customer'),
-                                ['icon' => '', 'active' => request()->input('type') == 'customer']
+                                ['icon' => '', 'active' => request()->input('type') == 'customer' && ! request()->boolean('dealer')]
                             );
                             $sub->url(
                                 action([\App\Http\Controllers\CustomerGroupController::class, 'index']),
@@ -454,9 +454,24 @@ class AdminSidebarMenu
                     function ($sub) {
                         if (auth()->user()->can('customer.view') || auth()->user()->can('customer.create')) {
                             $sub->url(
+                                action([\App\Http\Controllers\ContactController::class, 'index'], ['type' => 'customer', 'dealer' => 1]),
+                                'Dealer',
+                                ['icon' => '', 'active' => request()->segment(1) == 'contacts' && request()->input('type') == 'customer' && request()->boolean('dealer')]
+                            );
+                            $sub->url(
                                 action([\App\Http\Controllers\Distribution\CustomerController::class, 'index']),
-                                'Distribution Customers',
-                                ['icon' => '', 'active' => request()->segment(1) == 'distribution' && request()->segment(2) == 'customers']
+                                'SR (Sales Representative)',
+                                ['icon' => '', 'active' => request()->segment(1) == 'distribution' && request()->segment(2) == 'customers' && request()->input('employee_type') != 'dsr']
+                            );
+                            $sub->url(
+                                action([\App\Http\Controllers\Distribution\CustomerController::class, 'index'], ['employee_type' => 'dsr']),
+                                'DSR (Delivery Sales Representative)',
+                                ['icon' => '', 'active' => request()->segment(1) == 'distribution' && request()->segment(2) == 'customers' && request()->input('employee_type') == 'dsr']
+                            );
+                            $sub->url(
+                                route('distribution.shop-owners.index'),
+                                'Shop Owners',
+                                ['icon' => '', 'active' => request()->segment(1) == 'distribution' && request()->segment(2) == 'shop-owners']
                             );
                            
                         }
@@ -868,6 +883,11 @@ class AdminSidebarMenu
                                 action([\App\Http\Controllers\BusinessLocationController::class, 'index']),
                                 __('business.business_locations'),
                                 ['icon' => '', 'active' => request()->segment(1) == 'business-location']
+                            );
+                            $sub->url(
+                                action([\App\Http\Controllers\ZoneController::class, 'index']),
+                                'Zones',
+                                ['icon' => '', 'active' => request()->segment(1) == 'zones']
                             );
                         }
                         if (auth()->user()->can('invoice_settings.access')) {

@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title', __('lang_v1.' . $type . 's'))
+@section('title', $type === 'customer' && request()->boolean('dealer') ? 'Dealers' : __('lang_v1.' . $type . 's'))
 @php
     $api_key = env('GOOGLE_MAP_API_KEY');
 @endphp
@@ -11,8 +11,8 @@
 @section('content')
     <!-- Content Header (Page header) -->
     <section class="content-header">
-        <h1 class="tw-text-xl md:tw-text-3xl tw-font-bold tw-text-black"> @lang('lang_v1.' . $type . 's')
-            <small class="tw-text-sm md:tw-text-base tw-text-gray-700 tw-font-semibold">@lang('contact.manage_your_contact', ['contacts' => __('lang_v1.' . $type . 's')])</small>
+        <h1 class="tw-text-xl md:tw-text-3xl tw-font-bold tw-text-black">{{ $type === 'customer' && request()->boolean('dealer') ? 'Dealers' : __('lang_v1.' . $type . 's') }}
+            <small class="tw-text-sm md:tw-text-base tw-text-gray-700 tw-font-semibold">@lang('contact.manage_your_contact', ['contacts' => $type === 'customer' && request()->boolean('dealer') ? 'dealers' : __('lang_v1.' . $type . 's')])</small>
         </h1>
     </section>
 
@@ -114,7 +114,7 @@
         <input type="hidden" value="{{ $type }}" id="contact_type">
         @component('components.widget', [
             'class' => 'box-primary',
-            'title' => __('contact.all_your_contact', ['contacts' => __('lang_v1.' . $type . 's')]),
+            'title' => __('contact.all_your_contact', ['contacts' => $type === 'customer' && request()->boolean('dealer') ? 'dealers' : __('lang_v1.' . $type . 's')]),
         ])
             @if (auth()->user()->can('supplier.create') ||
                     auth()->user()->can('customer.create') ||

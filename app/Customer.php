@@ -9,6 +9,10 @@ use Laravel\Sanctum\HasApiTokens;
 
 class Customer extends Authenticatable
 {
+    public const TYPE_SR = 'sr';
+
+    public const TYPE_DSR = 'dsr';
+
     use HasApiTokens;
     use HasFactory;
     use Notifiable;
@@ -58,6 +62,51 @@ class Customer extends Authenticatable
         return $this->belongsTo(Business::class);
     }
 
+    public function getZoneAttribute()
+    {
+        $stockOwner = $this->resolvedStockOwner();
+
+        if (! $stockOwner) {
+            return null;
+        }
+
+        $stockOwner->loadMissing('contact.zone.businessLocation');
+
+        return optional($stockOwner->contact)->zone;
+    }
+
+    public function getProfileImageUrlAttribute(): ?string
+    {
+        return $this->profile_image && \Storage::disk('public')->exists($this->profile_image)
+            ? \Storage::disk('public')->url($this->profile_image)
+            : null;
+    }
+
+    public function getUsesAttendanceAttribute(): bool
+    {
+        return $this->employee_type !== self::TYPE_DSR;
+    }
+
+    public function scopeSalesRepresentatives($query)
+    {
+        return $query->where('employee_type', self::TYPE_SR);
+    }
+
+    public function scopeDeliverySalesRepresentatives($query)
+    {
+        return $query->where('employee_type', self::TYPE_DSR);
+    }
+
+    public function assignedSalesRepresentative()
+    {
+        return $this->belongsTo(Customer::class, 'assigned_sr_customer_id');
+    }
+
+    public function deliverySalesRepresentative()
+    {
+        return $this->hasOne(Customer::class, 'assigned_sr_customer_id');
+    }
+
     /**
      * Get the admin who created the customer.
      */
@@ -74,6 +123,11 @@ class Customer extends Authenticatable
     public function distributorCustomers()
     {
         return $this->hasMany(Customer::class, 'stock_owner_customer_id');
+    }
+
+    public function shopOwners()
+    {
+        return $this->hasMany(ShopOwner::class, 'distributor_id');
     }
 
     public function getResolvedStockOwnerIdAttribute(): int
@@ -130,6 +184,11 @@ class Customer extends Authenticatable
     public function locations()
     {
         return $this->hasMany(CustomerLocation::class);
+    }
+
+    public function shopVisits()
+    {
+        return $this->hasMany(CustomerShopVisit::class);
     }
 
     public function attendances()

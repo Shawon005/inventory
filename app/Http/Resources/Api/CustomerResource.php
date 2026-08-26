@@ -15,6 +15,8 @@ class CustomerResource extends JsonResource
             'phone' => $this->phone,
             'address' => $this->address,
             'status' => $this->status,
+            'employee_type' => $this->employee_type ?? \App\Customer::TYPE_SR,
+            'uses_attendance' => $this->uses_attendance,
         ];
     }
 }

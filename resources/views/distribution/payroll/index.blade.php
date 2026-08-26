@@ -23,7 +23,7 @@
                             <option value="">All</option>
                             @foreach($customersForFilter as $customer)
                                 <option value="{{ $customer->id }}" {{ (string) request('customer_id') === (string) $customer->id ? 'selected' : '' }}>
-                                    {{ $customer->name }}
+                                    {{ $customer->name }} ({{ strtoupper($customer->employee_type ?? 'sr') }})
                                 </option>
                             @endforeach
                         </select>
@@ -46,6 +46,7 @@
                     <thead>
                         <tr>
                             <th>Employee</th>
+                            <th>Type</th>
                             <th>Present Days</th>
                             <th>Holiday Days</th>
                             <th>Approved Leave</th>
@@ -70,13 +71,14 @@
                         @forelse($rows as $row)
                             <tr>
                                 <td>{{ $row['customer']->name }}</td>
-                                <td>{{ $row['present_days'] }}</td>
-                                <td>{{ $row['holiday_days'] }}</td>
-                                <td>{{ $row['approved_leave_days'] }}</td>
-                                <td>{{ $row['absent_days'] }}</td>
-                                <td>{{ $row['worked_hours'] }}</td>
-                                <td>{{ $row['late_hours'] }}</td>
-                                <td>{{ $row['overtime_hours'] }}</td>
+                                <td>{{ strtoupper($row['customer']->employee_type ?? 'sr') }}</td>
+                                <td>{{ $row['uses_attendance'] ? $row['present_days'] : 'N/A' }}</td>
+                                <td>{{ $row['uses_attendance'] ? $row['holiday_days'] : 'N/A' }}</td>
+                                <td>{{ $row['uses_attendance'] ? $row['approved_leave_days'] : 'N/A' }}</td>
+                                <td>{{ $row['uses_attendance'] ? $row['absent_days'] : 'N/A' }}</td>
+                                <td>{{ $row['uses_attendance'] ? $row['worked_hours'] : 'N/A' }}</td>
+                                <td>{{ $row['uses_attendance'] ? $row['late_hours'] : 'N/A' }}</td>
+                                <td>{{ $row['uses_attendance'] ? $row['overtime_hours'] : 'N/A' }}</td>
                                 <td>@format_currency($row['base_salary'])</td>
                                 <td>@format_currency($row['absent_deduction'])</td>
                                 <td>@format_currency($row['late_deduction'])</td>
@@ -93,7 +95,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="19" class="text-center">No employees found</td></tr>
+                            <tr><td colspan="20" class="text-center">No employees found</td></tr>
                         @endforelse
                     </tbody>
                 </table>

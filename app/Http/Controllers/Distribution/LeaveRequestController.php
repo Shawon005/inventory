@@ -18,10 +18,16 @@ class LeaveRequestController extends Controller
 
         $businessId = request()->session()->get('user.business_id');
 
-        $customers = Customer::where('business_id', $businessId)->orderBy('name')->get(['id', 'name']);
+        $customers = Customer::where('business_id', $businessId)
+            ->where('employee_type', Customer::TYPE_SR)
+            ->orderBy('name')
+            ->get(['id', 'name']);
 
         $query = DistributionLeaveRequest::with('customer')
             ->where('business_id', $businessId)
+            ->whereHas('customer', function ($customerQuery) {
+                $customerQuery->where('employee_type', Customer::TYPE_SR);
+            })
             ->orderByDesc('created_at');
 
         if ($request->filled('customer_id')) {
@@ -47,7 +53,11 @@ class LeaveRequestController extends Controller
             'admin_note' => 'nullable|string|max:500',
         ]);
 
-        $leave = DistributionLeaveRequest::where('business_id', request()->session()->get('user.business_id'))->findOrFail($id);
+        $leave = DistributionLeaveRequest::where('business_id', request()->session()->get('user.business_id'))
+            ->whereHas('customer', function ($customerQuery) {
+                $customerQuery->where('employee_type', Customer::TYPE_SR);
+            })
+            ->findOrFail($id);
 
         $leave->update([
             'status' => 'approved',
@@ -69,7 +79,11 @@ class LeaveRequestController extends Controller
             'admin_note' => 'nullable|string|max:500',
         ]);
 
-        $leave = DistributionLeaveRequest::where('business_id', request()->session()->get('user.business_id'))->findOrFail($id);
+        $leave = DistributionLeaveRequest::where('business_id', request()->session()->get('user.business_id'))
+            ->whereHas('customer', function ($customerQuery) {
+                $customerQuery->where('employee_type', Customer::TYPE_SR);
+            })
+            ->findOrFail($id);
 
         $leave->update([
             'status' => 'rejected',

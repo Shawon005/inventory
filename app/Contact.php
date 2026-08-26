@@ -36,6 +36,11 @@ class Contact extends Authenticatable
         return $this->belongsTo(\App\Business::class);
     }
 
+    public function zone()
+    {
+        return $this->belongsTo(\App\Zone::class);
+    }
+
     public function scopeActive($query)
     {
         return $query->where('contacts.contact_status', 'active');

@@ -13,7 +13,11 @@ class CustomerTrackingController extends Controller
     public function index()
     {
         $business_id = request()->session()->get('user.business_id');
-        $customers = Customer::where('business_id', $business_id)->active()->orderBy('name')->get();
+        $customers = Customer::where('business_id', $business_id)
+            ->where('employee_type', Customer::TYPE_SR)
+            ->active()
+            ->orderBy('name')
+            ->get();
         
         return view('distribution.tracking.index', compact('customers'));
     }

@@ -8,6 +8,7 @@ use App\CustomerSale;
 use App\DistributionHoliday;
 use App\DistributionLeaveRequest;
 use App\Http\Controllers\Controller;
+use App\Services\HolidayTadaService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -15,6 +16,39 @@ class PayrollController extends Controller
 {
     protected function buildPayrollData(Customer $customer, Carbon $start, Carbon $end): array
     {
+        if (! $customer->uses_attendance) {
+            $baseSalary = (float) ($customer->base_salary ?? 0);
+
+            return [
+                'customer' => $customer,
+                'uses_attendance' => false,
+                'total_days' => $start->daysInMonth,
+                'present_days' => 0,
+                'holiday_days' => 0,
+                'approved_leave_days' => 0,
+                'payable_days' => $start->daysInMonth,
+                'absent_days' => 0,
+                'worked_hours' => 0,
+                'late_hours' => 0,
+                'overtime_hours' => 0,
+                'base_salary' => $baseSalary,
+                'absent_deduction' => 0,
+                'late_deduction' => 0,
+                'overtime_pay' => 0,
+                'total_tada_bill' => 0,
+                'holiday_tada_paid_days' => 0,
+                'holiday_tada_missed_days' => 0,
+                'monthly_sales_amount' => 0,
+                'monthly_target_amount' => 0,
+                'excess_sales_amount' => 0,
+                'commission_percent' => 0,
+                'commission_amount' => 0,
+                'gross_earnings' => $baseSalary,
+                'net_payable' => $baseSalary,
+                'daily_rows' => collect(),
+            ];
+        }
+
         $attendances = CustomerAttendance::where('customer_id', $customer->id)
             ->whereBetween('attendance_date', [$start->toDateString(), $end->toDateString()])
             ->orderBy('attendance_date')
@@ -95,6 +129,8 @@ class PayrollController extends Controller
 
             $dailyRows->push([
                 'date' => Carbon::parse($entry->attendance_date)->toDateString(),
+                'entry_type' => 'attendance',
+                'description' => 'Attendance',
                 'in_time' => $entry->in_time,
                 'out_time' => $entry->out_time,
                 'worked_hours' => round($dayWorked / 60, 2),
@@ -102,6 +138,30 @@ class PayrollController extends Controller
                 'overtime_hours' => round($dayOvertime / 60, 2),
                 'location' => $customer->attendance_location,
                 'tada_bill_amount' => (float) ($entry->tada_bill_amount ?? 0),
+            ]);
+        }
+
+        $holidayTadaRows = app(HolidayTadaService::class)->rowsForCustomers(
+            collect([$customer]),
+            $start,
+            $end
+        );
+        foreach ($holidayTadaRows as $holidayTadaRow) {
+            if ($holidayTadaRow['effective_status'] === HolidayTadaService::STATUS_PAID) {
+                $totalTadaBill += $holidayTadaRow['amount'];
+            }
+
+            $dailyRows->push([
+                'date' => $holidayTadaRow['holiday_date'],
+                'entry_type' => 'friday_holiday_tada',
+                'description' => 'Friday holiday TA/DA ('.ucfirst($holidayTadaRow['effective_status']).')',
+                'in_time' => null,
+                'out_time' => null,
+                'worked_hours' => 0,
+                'late_hours' => 0,
+                'overtime_hours' => 0,
+                'location' => 'Friday holiday TA/DA — '.ucfirst($holidayTadaRow['effective_status']),
+                'tada_bill_amount' => $holidayTadaRow['amount'],
             ]);
         }
 
@@ -133,6 +193,7 @@ class PayrollController extends Controller
 
         return [
             'customer' => $customer,
+            'uses_attendance' => true,
             'total_days' => $totalDaysInMonth,
             'present_days' => $presentDays,
             'holiday_days' => $holidayDays,
@@ -147,6 +208,8 @@ class PayrollController extends Controller
             'late_deduction' => round($lateDeduction, 2),
             'overtime_pay' => round($overtimePay, 2),
             'total_tada_bill' => round($totalTadaBill, 2),
+            'holiday_tada_paid_days' => $holidayTadaRows->where('effective_status', HolidayTadaService::STATUS_PAID)->count(),
+            'holiday_tada_missed_days' => $holidayTadaRows->where('effective_status', HolidayTadaService::STATUS_MISSED)->count(),
             'monthly_sales_amount' => round($totalSalesAmount, 2),
             'monthly_target_amount' => round($monthlyTargetAmount, 2),
             'excess_sales_amount' => round($excessSalesAmount, 2),
@@ -180,7 +243,7 @@ class PayrollController extends Controller
         $customersForFilter = Customer::where('business_id', $businessId)
             ->where('status', 'active')
             ->orderBy('name')
-            ->get(['id', 'name']);
+            ->get(['id', 'name', 'employee_type']);
 
         $customers = $customersQuery->get();
         $rows = $customers->map(function ($customer) use ($start, $end) {

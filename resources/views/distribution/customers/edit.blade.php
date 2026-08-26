@@ -1,39 +1,63 @@
 @extends('layouts.app')
-@section('title', 'Edit Distribution Customer')
+@section('title', $isDsr ? 'Edit DSR (Delivery Sales Representative)' : 'Edit SR (Sales Representative)')
 @section('content')
 <section class="content-header">
-    <h1>Edit Distribution Customer</h1>
+    <h1>{{ $isDsr ? 'Edit DSR (Delivery Sales Representative)' : 'Edit SR (Sales Representative)' }}</h1>
 </section>
 <section class="content">
-    {!! Form::open(['url' => action([\App\Http\Controllers\Distribution\CustomerController::class, 'update'], [$customer->id]), 'method' => 'put']) !!}
+    {!! Form::open(['url' => action([\App\Http\Controllers\Distribution\CustomerController::class, 'update'], [$customer->id]), 'method' => 'put', 'files' => true]) !!}
     <div class="box">
         <div class="box-body">
             <div class="row">
                 <div class="col-md-6">
                     <div class="form-group">
-                        <label>Stock Owner Customer</label>
-                        {!! Form::select('stock_owner_customer_id', $customers->pluck('name', 'id')->prepend('Use this customer as stock owner', ''), $customer->stock_owner_customer_id, ['class' => 'form-control select2', 'style' => 'width:100%']) !!}
-                        <small class="help-block">Select the main customer whose stock should be shared with this distributor.</small>
+                        <label>Profile Image</label>
+                        @if($customer->profile_image_url)
+                            <div style="margin-bottom:10px;">
+                                <img src="{{ $customer->profile_image_url }}" alt="{{ $customer->name }}" style="width:80px;height:80px;object-fit:cover;border-radius:50%;border:3px solid #e5e7eb;">
+                            </div>
+                        @endif
+                        {!! Form::file('profile_image', ['class' => 'form-control', 'accept' => 'image/jpeg,image/png,image/webp']) !!}
+                        <small class="help-block">Upload a new image to replace the current one. Maximum 2 MB.</small>
                     </div>
                 </div>
+                @if($isDsr)
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Assigned SR *</label>
+                            {!! Form::select('assigned_sr_customer_id', $customers->pluck('name', 'id')->prepend('Select SR', ''), $customer->assigned_sr_customer_id, ['class' => 'form-control select2', 'style' => 'width:100%', 'required']) !!}
+                            <small class="help-block">Each SR can have only one DSR.</small>
+                        </div>
+                    </div>
+                @else
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Stock Owner Customer</label>
+                            {!! Form::select('stock_owner_customer_id', $customers->pluck('name', 'id')->prepend('Use this customer as stock owner', ''), $customer->stock_owner_customer_id, ['class' => 'form-control select2', 'style' => 'width:100%']) !!}
+                            <small class="help-block">Select the main customer whose stock should be shared with this distributor.</small>
+                        </div>
+                    </div>
+                @endif
                 <div class="col-md-6">
                     <div class="form-group">
                         <label>Name *</label>
                         {!! Form::text('name', $customer->name, ['class' => 'form-control', 'required']) !!}
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>Email *</label>
-                        {!! Form::email('email', $customer->email, ['class' => 'form-control', 'required']) !!}
+                @unless($isDsr)
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Email *</label>
+                            {!! Form::email('email', $customer->email, ['class' => 'form-control', 'required']) !!}
+                        </div>
                     </div>
-                </div>
+                @endunless
             </div>
             <div class="row">
                 <div class="col-md-6">
                     <div class="form-group">
-                        <label>Phone *</label>
-                        {!! Form::text('phone', $customer->phone, ['class' => 'form-control', 'required']) !!}
+                        <label>Phone{{ $isDsr ? '' : ' *' }}</label>
+                        {!! Form::text('phone', $customer->phone, $isDsr ? ['class' => 'form-control'] : ['class' => 'form-control', 'required' => true]) !!}
                     </div>
                 </div>
                 <div class="col-md-6">
@@ -47,6 +71,19 @@
                 <label>Address</label>
                 {!! Form::textarea('address', $customer->address, ['class' => 'form-control', 'rows' => 2]) !!}
             </div>
+            @if($isDsr)
+            <hr>
+            <h4>Payroll Settings</h4>
+            <p class="text-muted">DSR employees do not use attendance. Their payroll is based on the salary below without attendance deductions.</p>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>Monthly Salary</label>
+                        {!! Form::number('salary', $customer->base_salary ?? 0, ['class' => 'form-control', 'step' => '0.01', 'min' => 0]) !!}
+                    </div>
+                </div>
+            </div>
+            @else
             <hr>
             <h4>Attendance & Payroll Settings</h4>
             <div class="row">
@@ -156,18 +193,21 @@
                     </tbody>
                 </table>
             </div>
-            <div class="form-group">
-                <label>New Password (leave blank to keep current)</label>
-                {!! Form::password('password', ['class' => 'form-control']) !!}
-            </div>
-            <div class="form-group">
-                <label>Confirm New Password</label>
-                {!! Form::password('password_confirmation', ['class' => 'form-control']) !!}
-            </div>
+            @endif
+            @unless($isDsr)
+                <div class="form-group">
+                    <label>New Password (leave blank to keep current)</label>
+                    {!! Form::password('password', ['class' => 'form-control']) !!}
+                </div>
+                <div class="form-group">
+                    <label>Confirm New Password</label>
+                    {!! Form::password('password_confirmation', ['class' => 'form-control']) !!}
+                </div>
+            @endunless
         </div>
         <div class="box-footer">
             <button type="submit" class="btn btn-primary">Update</button>
-            <a href="{{ action([\App\Http\Controllers\Distribution\CustomerController::class, 'index']) }}" class="btn btn-default">Cancel</a>
+            <a href="{{ action([\App\Http\Controllers\Distribution\CustomerController::class, 'index'], $isDsr ? ['employee_type' => 'dsr'] : []) }}" class="btn btn-default">Cancel</a>
         </div>
     </div>
     {!! Form::close() !!}

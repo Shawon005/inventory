@@ -17,7 +17,9 @@ class AuthController extends Controller
      */
     public function login(CustomerLoginRequest $request): JsonResponse
     {
-        $customer = Customer::where('email', $request->email)->first();
+        $customer = Customer::where('employee_type', Customer::TYPE_SR)
+            ->where('email', $request->email)
+            ->first();
 
         if (! $customer || ! Hash::check($request->password, $customer->password)) {
             throw ValidationException::withMessages([

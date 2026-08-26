@@ -75,6 +75,18 @@
               </div>
           </div>
         </div>
+        <div class="col-md-4 customer_fields">
+          <div class="form-group">
+              {!! Form::label('zone_id', 'Zone:*') !!}
+              <div class="input-group">
+                  <span class="input-group-addon"><i class="fa fa-map-marker"></i></span>
+                  {!! Form::select('zone_id', $zones, old('zone_id', $contact->zone_id), ['class' => 'form-control', 'id' => 'contact_zone_id', 'placeholder' => __('messages.please_select')]); !!}
+              </div>
+              @if($zones->isEmpty())
+                  <p class="help-block text-danger">No zones are available.</p>
+              @endif
+          </div>
+        </div>
         <div class="clearfix customer_fields"></div>
         <div class="col-md-4 business" @if($contact->contact_type == 'individual' || empty($contact->contact_type)) style="display: none;"  @endif>
           <div class="form-group">

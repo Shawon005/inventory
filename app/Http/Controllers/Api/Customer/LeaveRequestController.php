@@ -13,6 +13,12 @@ class LeaveRequestController extends Controller
     public function index(Request $request): JsonResponse
     {
         $customer = auth()->user();
+        if (! $customer->uses_attendance) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Leave requests are not used for DSR payroll.',
+            ], 403);
+        }
 
         $query = DistributionLeaveRequest::where('business_id', $customer->business_id)
             ->where('customer_id', $customer->id)
@@ -45,6 +51,12 @@ class LeaveRequestController extends Controller
     public function store(Request $request): JsonResponse
     {
         $customer = auth()->user();
+        if (! $customer->uses_attendance) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Leave requests are not used for DSR payroll.',
+            ], 403);
+        }
 
         $request->validate([
             'from_date' => 'required|date',

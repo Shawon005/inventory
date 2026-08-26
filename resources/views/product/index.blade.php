@@ -442,12 +442,13 @@
                 });
             });
 
-            $(document).on('click', '#delete-selected', function(e) {
+            $(document).on('click', '.delete-selected', function(e) {
                 e.preventDefault();
                 var selected_rows = getSelectedRows();
+                var form = $(this).closest('form');
 
                 if (selected_rows.length > 0) {
-                    $('input#selected_rows').val(selected_rows);
+                    form.find('input.selected_rows').val(selected_rows);
                     swal({
                         title: LANG.sure,
                         icon: "warning",
@@ -455,21 +456,22 @@
                         dangerMode: true,
                     }).then((willDelete) => {
                         if (willDelete) {
-                            $('form#mass_delete_form').submit();
+                            form.submit();
                         }
                     });
                 } else {
-                    $('input#selected_rows').val('');
+                    form.find('input.selected_rows').val('');
                     swal('@lang('lang_v1.no_row_selected')');
                 }
             });
 
-            $(document).on('click', '#deactivate-selected', function(e) {
+            $(document).on('click', '.deactivate-selected', function(e) {
                 e.preventDefault();
                 var selected_rows = getSelectedRows();
+                var form = $(this).closest('form');
 
                 if (selected_rows.length > 0) {
-                    $('input#selected_products').val(selected_rows);
+                    form.find('input.selected_products').val(selected_rows);
                     swal({
                         title: LANG.sure,
                         icon: "warning",
@@ -477,8 +479,6 @@
                         dangerMode: true,
                     }).then((willDelete) => {
                         if (willDelete) {
-                            var form = $('form#mass_deactivate_form')
-
                             var data = form.serialize();
                             $.ajax({
                                 method: form.attr('method'),
@@ -490,7 +490,7 @@
                                         toastr.success(result.msg);
                                         product_table.ajax.reload();
                                         form
-                                            .find('#selected_products')
+                                            .find('input.selected_products')
                                             .val('');
                                     } else {
                                         toastr.error(result.msg);
@@ -500,20 +500,21 @@
                         }
                     });
                 } else {
-                    $('input#selected_products').val('');
+                    form.find('input.selected_products').val('');
                     swal('@lang('lang_v1.no_row_selected')');
                 }
             })
 
-            $(document).on('click', '#edit-selected', function(e) {
+            $(document).on('click', '.edit-selected', function(e) {
                 e.preventDefault();
                 var selected_rows = getSelectedRows();
+                var form = $(this).closest('form');
 
                 if (selected_rows.length > 0) {
-                    $('input#selected_products_for_edit').val(selected_rows);
-                    $('form#bulk_edit_form').submit();
+                    form.find('input.selected_products_for_edit').val(selected_rows);
+                    form.submit();
                 } else {
-                    $('input#selected_products').val('');
+                    form.find('input.selected_products_for_edit').val('');
                     swal('@lang('lang_v1.no_row_selected')');
                 }
             })
@@ -826,7 +827,6 @@
             var selected_rows = getSelectedRows();
 
             if (selected_rows.length > 0) {
-                $('input#selected_products').val(selected_rows);
                 var type = $(this).data('type');
                 var modal = $('#edit_product_location_modal');
                 if (type == 'add') {
@@ -845,7 +845,6 @@
                 modal.find('#update_type').val(type);
                 modal.find('#products_to_update_location').val(selected_rows);
             } else {
-                $('input#selected_products').val('');
                 swal('@lang('lang_v1.no_row_selected')');
             }
         });
