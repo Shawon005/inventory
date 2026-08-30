@@ -104,6 +104,11 @@ class AdminSidebarMenu
                                 ['icon' => '', 'active' => request()->input('type') == 'customer' && ! request()->boolean('dealer')]
                             );
                             $sub->url(
+                                action([\App\Http\Controllers\ContactController::class, 'index'], ['type' => 'customer', 'dealer' => 1]),
+                                'Dealer',
+                                ['icon' => '', 'active' => request()->segment(1) == 'contacts' && request()->input('type') == 'customer' && request()->boolean('dealer')]
+                            );
+                            $sub->url(
                                 action([\App\Http\Controllers\CustomerGroupController::class, 'index']),
                                 __('lang_v1.customer_groups'),
                                 ['icon' => '', 'active' => request()->segment(1) == 'customer-group']
@@ -447,17 +452,12 @@ class AdminSidebarMenu
                 )->order(35);
             }
 
-            // Distribution dropdown (Customer Management, Stock Transfers, GPS Tracking)
+            // HRM dropdown (employee management, attendance, leave, and payroll)
             if (auth()->user()->can('customer.view') || auth()->user()->can('customer.create')) {
                 $menu->dropdown(
-                    'Distribution',
+                    'HRM',
                     function ($sub) {
                         if (auth()->user()->can('customer.view') || auth()->user()->can('customer.create')) {
-                            $sub->url(
-                                action([\App\Http\Controllers\ContactController::class, 'index'], ['type' => 'customer', 'dealer' => 1]),
-                                'Dealer',
-                                ['icon' => '', 'active' => request()->segment(1) == 'contacts' && request()->input('type') == 'customer' && request()->boolean('dealer')]
-                            );
                             $sub->url(
                                 action([\App\Http\Controllers\Distribution\CustomerController::class, 'index']),
                                 'SR (Sales Representative)',

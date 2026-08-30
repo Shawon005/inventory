@@ -449,6 +449,9 @@ $(document).ready(function() {
             "url": "/contacts",
             "data": function ( d ) {
                 d.type = $('#contact_type').val();
+                if ($('#dealer_list_filter').length) {
+                    d.dealer = $('#dealer_list_filter').val();
+                }
                 d = __datatable_ajax_callback(d);
 
                 if ($('#has_sell_due').length > 0 && $('#has_sell_due').is(':checked')) {
@@ -525,7 +528,9 @@ $(document).ready(function() {
     $('.contact_modal').on('shown.bs.modal', function(e) {
         var toggleContactZoneRequirement = function() {
             var type = $('select#contact_type').val();
-            $('#contact_zone_id').prop('required', type === 'customer' || type === 'both');
+            var isDealer = $('input#is_dealer').val() === '1';
+            $('div.dealer_fields').toggle(isDealer && (type === 'customer' || type === 'both'));
+            $('#contact_zone_id').prop('required', isDealer && (type === 'customer' || type === 'both'));
         };
 
         $('input[type=radio][name="contact_type_radio"]').on('change', function() {

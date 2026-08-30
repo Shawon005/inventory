@@ -26,6 +26,7 @@ class Contact extends Authenticatable
      */
     protected $casts = [
         'shipping_custom_field_details' => 'array',
+        'is_dealer' => 'boolean',
     ];
 
     /**
@@ -44,6 +45,16 @@ class Contact extends Authenticatable
     public function scopeActive($query)
     {
         return $query->where('contacts.contact_status', 'active');
+    }
+
+    public function scopeDealers($query)
+    {
+        return $query->where('contacts.is_dealer', true);
+    }
+
+    public function scopeRetailCustomers($query)
+    {
+        return $query->where('contacts.is_dealer', false);
     }
 
     /**

@@ -60,7 +60,7 @@
 		@endif
 		{{-- <tr class="summary_hidden">
 			<td><strong>@lang('lang_v1.balance_due')</strong></td>
-			<td class="align-right">@format_currency($ledger_details['balance_due'] - $ledger_details['ledger_discount'])</td>
+			<td class="align-right">@format_currency(max(0, $ledger_details['balance_due'] - $ledger_details['ledger_discount']))</td>
 		</tr> --}}
 		</table>
 	</div>
@@ -99,7 +99,7 @@
 
 			<tr >
 				<td><strong>@lang('lang_v1.balance_due')</strong></td>
-				<td class="align-right">@format_currency($ledger_details['all_balance_due'])</td>
+				<td class="align-right">@format_currency(max(0, $ledger_details['all_balance_due']))</td>
 			</tr>
 		</table>
 	</div>

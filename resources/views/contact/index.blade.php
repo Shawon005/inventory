@@ -112,6 +112,7 @@
             </div>
         @endcomponent
         <input type="hidden" value="{{ $type }}" id="contact_type">
+        <input type="hidden" value="{{ $type === 'customer' && request()->boolean('dealer') ? 1 : 0 }}" id="dealer_list_filter">
         @component('components.widget', [
             'class' => 'box-primary',
             'title' => __('contact.all_your_contact', ['contacts' => $type === 'customer' && request()->boolean('dealer') ? 'dealers' : __('lang_v1.' . $type . 's')]),
@@ -123,7 +124,7 @@
                 @slot('tool')
                     <div class="box-tools">
                         <a class="tw-dw-btn tw-bg-gradient-to-r tw-from-indigo-600 tw-to-blue-500 tw-font-bold tw-text-white tw-border-none tw-rounded-full btn-modal"
-                                data-href="{{ action([\App\Http\Controllers\ContactController::class, 'create'], ['type' => $type]) }}"
+                                data-href="{{ action([\App\Http\Controllers\ContactController::class, 'create'], array_filter(['type' => $type, 'dealer' => $type === 'customer' && request()->boolean('dealer') ? 1 : null])) }}"
                                 data-container=".contact_modal">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round"

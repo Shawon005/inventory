@@ -196,7 +196,15 @@ class CustomerController extends Controller
             'password' => $isDsr ? 'nullable' : 'required|min:6|confirmed',
             'address' => 'nullable|string',
             'status' => 'in:active,inactive',
-            'contact_id' => 'nullable|exists:contacts,id',
+            'contact_id' => [
+                'nullable',
+                Rule::exists('contacts', 'id')->where(function ($query) use ($business_id) {
+                    $query->where('business_id', $business_id)
+                        ->where('is_dealer', true)
+                        ->whereIn('type', ['customer', 'both'])
+                        ->whereNull('deleted_at');
+                }),
+            ],
             'profile_image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
             'work_latitude' => 'nullable|numeric|between:-90,90',
             'work_longitude' => 'nullable|numeric|between:-180,180',
@@ -256,7 +264,9 @@ class CustomerController extends Controller
         ];
 
         if (! $isDsr && $request->filled('contact_id')) {
-            $contact = \App\Contact::find($request->contact_id);
+            $contact = \App\Contact::where('business_id', $business_id)
+                ->dealers()
+                ->findOrFail($request->contact_id);
            
             $data['contact_id'] = $contact->id;
             $data['name'] = $contact->name==''?$contact->supplier_business_name:$contact->name;

@@ -12,7 +12,7 @@
     <strong>@lang('contact.total_purchase_due')</strong>
     <p class="text-muted">
     <span class="display_currency" data-currency_symbol="true">
-    {{ $contact->total_purchase - $contact->purchase_paid }}</span>
+    {{ max(0, $contact->total_purchase - $contact->purchase_paid) }}</span>
     </p>
 @endif
 @if( $contact->type == 'customer' || $contact->type == 'both')
@@ -29,7 +29,7 @@
     <strong>@lang('contact.total_sale_due')</strong>
     <p class="text-muted">
     <span class="display_currency" data-currency_symbol="true">
-    {{ $contact->total_invoice - $contact->invoice_received }}</span>
+    {{ max(0, $contact->total_invoice - $contact->invoice_received) }}</span>
     </p>
 @endif
 @if(!empty($contact->opening_balance) && $contact->opening_balance != '0.00')

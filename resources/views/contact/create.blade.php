@@ -19,10 +19,11 @@
     $zone_options = $zones ?? \App\Zone::forDropdown((int) session('user.business_id'));
   @endphp
     {!! Form::open(['url' => $url, 'method' => 'post', 'id' => $form_id ]) !!}
+    {!! Form::hidden('is_dealer', !empty($is_dealer) ? 1 : 0, ['id' => 'is_dealer']) !!}
 
     <div class="modal-header">
       <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-      <h4 class="modal-title">@lang('contact.add_contact')</h4>
+      <h4 class="modal-title">{{ !empty($is_dealer) ? 'Add Dealer' : __('contact.add_contact') }}</h4>
     </div>
 
     <div class="modal-body">
@@ -73,7 +74,7 @@
                   </div>
                 </div>
             </div>
-            <div class="col-md-4 customer_fields">
+            <div class="col-md-4 customer_fields dealer_fields" @if(empty($is_dealer)) style="display:none;" @endif>
                 <div class="form-group">
                     {!! Form::label('zone_id', 'Zone:*') !!}
                     <div class="input-group">

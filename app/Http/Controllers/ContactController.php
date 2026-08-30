@@ -141,7 +141,7 @@ class ContactController extends Controller
             ->addColumn('address', '{{implode(", ", array_filter([$address_line_1, $address_line_2, $city, $state, $country, $zip_code]))}}')
             ->addColumn(
                 'due',
-                '<span class="contact_due" data-orig-value="{{$total_purchase - $purchase_paid - $total_ledger_discount}}" data-highlight=false>@format_currency($total_purchase - $purchase_paid - $total_ledger_discount)</span>'
+                '<span class="contact_due" data-orig-value="{{max(0, $total_purchase - $purchase_paid - $total_ledger_discount)}}" data-highlight=false>@format_currency(max(0, $total_purchase - $purchase_paid - $total_ledger_discount))</span>'
             )
             ->addColumn(
                 'return_due',
@@ -297,6 +297,12 @@ class ContactController extends Controller
 
         $query = $this->contactUtil->getContactQuery($business_id, 'customer');
 
+        if (request()->boolean('dealer')) {
+            $query->where('contacts.is_dealer', true);
+        } else {
+            $query->where('contacts.is_dealer', false);
+        }
+
         if (request()->has('has_sell_due')) {
             $query->havingRaw('(COALESCE(total_invoice, 0) - COALESCE(invoice_received, 0) - COALESCE(total_ledger_discount, 0) - COALESCE(total_sell_return, 0) + COALESCE(sell_return_paid, 0)) > 0');
         }
@@ -368,7 +374,7 @@ class ContactController extends Controller
         //    + $sell_return_paid add this in due because after paymnet for sell return not calculated 
             ->addColumn(
                 'due',
-                '<span class="contact_due" data-orig-value="{{$total_invoice - $invoice_received - $total_ledger_discount - $total_sell_return  + $sell_return_paid}}" data-highlight=true>@format_currency($total_invoice - $invoice_received - $total_ledger_discount -  $total_sell_return + $sell_return_paid)  </span>'
+                '<span class="contact_due" data-orig-value="{{max(0, $total_invoice - $invoice_received - $total_ledger_discount - $total_sell_return + $sell_return_paid)}}" data-highlight=true>@format_currency(max(0, $total_invoice - $invoice_received - $total_ledger_discount - $total_sell_return + $sell_return_paid))</span>'
             )
             ->addColumn(
                 'return_due',
@@ -543,6 +549,7 @@ class ContactController extends Controller
         }
 
         $business_id = request()->session()->get('user.business_id');
+        $is_dealer = request()->boolean('dealer');
 
         //Check if subscribed or not
         if (! $this->moduleUtil->isSubscribed($business_id)) {
@@ -550,19 +557,22 @@ class ContactController extends Controller
         }
 
         $types = [];
-        if (auth()->user()->can('supplier.create') || auth()->user()->can('supplier.view_own')) {
+        if ($is_dealer) {
+            $types['customer'] = 'Dealer';
+        }
+        if (! $is_dealer && (auth()->user()->can('supplier.create') || auth()->user()->can('supplier.view_own'))) {
             $types['supplier'] = __('report.supplier');
         }
-        if (auth()->user()->can('customer.create') || auth()->user()->can('customer.view_own')) {
+        if (! $is_dealer && (auth()->user()->can('customer.create') || auth()->user()->can('customer.view_own'))) {
             $types['customer'] = __('report.customer');
         }
-        if (auth()->user()->can('supplier.create') && auth()->user()->can('customer.create') || auth()->user()->can('supplier.view_own') || auth()->user()->can('customer.view_own')) {
+        if (! $is_dealer && ((auth()->user()->can('supplier.create') && auth()->user()->can('customer.create')) || auth()->user()->can('supplier.view_own') || auth()->user()->can('customer.view_own'))) {
             $types['both'] = __('lang_v1.both_supplier_customer');
         }
 
         $customer_groups = CustomerGroup::forDropdown($business_id);
         $zones = Zone::forDropdown($business_id);
-        $selected_type = request()->type;
+        $selected_type = $is_dealer ? 'customer' : request()->type;
 
         $module_form_parts = $this->moduleUtil->getModuleData('contact_form_part');
 
@@ -570,7 +580,7 @@ class ContactController extends Controller
         $users = config('constants.enable_contact_assign') ? User::forDropdown($business_id, false, false, false, true) : [];
 
         return view('contact.create')
-            ->with(compact('types', 'customer_groups', 'zones', 'selected_type', 'module_form_parts', 'users'));
+            ->with(compact('types', 'customer_groups', 'zones', 'selected_type', 'module_form_parts', 'users', 'is_dealer'));
     }
 
     /**
@@ -597,7 +607,9 @@ class ContactController extends Controller
             $input = $request->only(['type', 'supplier_business_name',
                 'prefix', 'first_name', 'middle_name', 'last_name', 'tax_number', 'pay_term_number', 'pay_term_type', 'mobile', 'landline', 'alternate_number', 'city', 'state', 'country', 'address_line_1', 'address_line_2', 'customer_group_id', 'zone_id', 'zip_code', 'contact_id', 'custom_field1', 'custom_field2', 'custom_field3', 'custom_field4', 'custom_field5', 'custom_field6', 'custom_field7', 'custom_field8', 'custom_field9', 'custom_field10', 'email', 'shipping_address', 'position', 'dob', 'shipping_custom_field_details', 'assigned_to_users', 'land_mark', 'street_name', 'building_number', 'additional_number', 'customer_discount_percent']);
 
-            if (! in_array($input['type'], ['customer', 'both'])) {
+            $input['is_dealer'] = $request->boolean('is_dealer') && in_array($input['type'], ['customer', 'both']);
+
+            if (! $input['is_dealer']) {
                 $input['zone_id'] = null;
             }
 
@@ -791,13 +803,15 @@ class ContactController extends Controller
         if (request()->ajax()) {
             $business_id = $request->session()->get('user.business_id');
             $existingContact = Contact::where('business_id', $business_id)->findOrFail($id);
-            $this->validateContactZone($request, $business_id, $existingContact->zone_id);
+            $this->validateContactZone($request, $business_id, $existingContact->zone_id, $existingContact->is_dealer);
 
             try {
                 $input = $request->only(['type', 'supplier_business_name', 'prefix', 'first_name', 'middle_name', 'last_name', 'tax_number', 'pay_term_number', 'pay_term_type', 'mobile', 'address_line_1', 'address_line_2', 'zone_id', 'zip_code', 'dob', 'alternate_number', 'city', 'state', 'country', 'landline', 'customer_group_id', 'contact_id', 'custom_field1', 'custom_field2', 'custom_field3', 'custom_field4', 'custom_field5', 'custom_field6', 'custom_field7', 'custom_field8', 'custom_field9', 'custom_field10', 'email', 'shipping_address', 'position', 'shipping_custom_field_details', 'export_custom_field_1', 'export_custom_field_2', 'export_custom_field_3', 'export_custom_field_4', 'export_custom_field_5',
                     'export_custom_field_6', 'assigned_to_users', 'land_mark', 'street_name', 'building_number', 'additional_number', 'customer_discount_percent']);
 
-                if (! in_array($input['type'], ['customer', 'both'])) {
+                $input['is_dealer'] = (bool) $existingContact->is_dealer && in_array($input['type'], ['customer', 'both']);
+
+                if (! $input['is_dealer']) {
                     $input['zone_id'] = null;
                 }
 
@@ -936,6 +950,10 @@ class ContactController extends Controller
 
             if (! request()->has('all_contact')) {
                 $contacts->onlyCustomers();
+            }
+
+            if (request()->boolean('dealer_only')) {
+                $contacts->dealers();
             }
 
             if (! empty($term)) {
@@ -1739,9 +1757,11 @@ class ContactController extends Controller
         ];
     }
 
-    protected function validateContactZone(Request $request, int $businessId, ?int $currentZoneId = null): void
+    protected function validateContactZone(Request $request, int $businessId, ?int $currentZoneId = null, ?bool $isDealer = null): void
     {
-        if (! in_array($request->input('type'), ['customer', 'both'])) {
+        $isDealer = $isDealer ?? $request->boolean('is_dealer');
+
+        if (! $isDealer || ! in_array($request->input('type'), ['customer', 'both'])) {
             return;
         }
 
@@ -1757,7 +1777,7 @@ class ContactController extends Controller
 
         $request->validate(
             ['zone_id' => ['required', $zoneRule]],
-            ['zone_id.required' => 'Please select a zone for this customer.']
+            ['zone_id.required' => 'Please select a zone for this dealer.']
         );
     }
 }

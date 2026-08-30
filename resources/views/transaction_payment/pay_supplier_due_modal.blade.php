@@ -23,7 +23,7 @@
           <div class="well">
             <strong>@lang('report.total_purchase'): </strong><span class="display_currency" data-currency_symbol="true">{{ $contact_details->total_purchase }}</span><br>
             <strong>@lang('contact.total_paid'): </strong><span class="display_currency" data-currency_symbol="true">{{ $contact_details->total_paid }}</span><br>
-            <strong>@lang('contact.total_purchase_due'): </strong><span class="display_currency" data-currency_symbol="true">{{ $contact_details->total_purchase - $contact_details->total_paid }}</span><br>
+            <strong>@lang('contact.total_purchase_due'): </strong><span class="display_currency" data-currency_symbol="true">{{ max(0, $contact_details->total_purchase - $contact_details->total_paid) }}</span><br>
              @if(!empty($contact_details->opening_balance) || $contact_details->opening_balance != '0.00')
                   <strong>@lang('lang_v1.opening_balance'): </strong>
                   <span class="display_currency" data-currency_symbol="true">
@@ -59,7 +59,7 @@
             <div class="well">
               <strong>@lang('report.total_sell'): </strong><span class="display_currency" data-currency_symbol="true">{{ $contact_details->total_invoice }}</span><br>
               <strong>@lang('contact.total_paid'): </strong><span class="display_currency" data-currency_symbol="true">{{ $contact_details->total_paid }}</span><br>
-              <strong>@lang('contact.total_sale_due'): </strong><span class="display_currency" data-currency_symbol="true">{{ $contact_details->total_invoice - $contact_details->total_paid }}</span><br>
+              <strong>@lang('contact.total_sale_due'): </strong><span class="display_currency" data-currency_symbol="true">{{ max(0, $contact_details->total_invoice - $contact_details->total_paid) }}</span><br>
               @if(!empty($contact_details->opening_balance) || $contact_details->opening_balance != '0.00')
                   <strong>@lang('lang_v1.opening_balance'): </strong>
                   <span class="display_currency" data-currency_symbol="true">

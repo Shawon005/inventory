@@ -1488,7 +1488,7 @@ class TransactionUtil extends Util
         //Paid & Amount due, only if final
         if ($transaction_type == 'sell' && $transaction->status == 'final') {
             $paid_amount = $this->getTotalPaid($transaction->id);
-            $due = $transaction->final_total - $paid_amount;
+            $due = max(0, $transaction->final_total - $paid_amount);
             $customer_total_due = $this->getContactDue($transaction->contact_id);
 
             $output['total_paid'] = ($paid_amount == 0) ? 0 : $this->num_f($paid_amount, $show_currency, $business_details);
@@ -2584,7 +2584,7 @@ class TransactionUtil extends Util
                     ->select(
                         DB::raw('SUM(final_total) as total_sell'),
                         DB::raw('SUM(final_total - tax_amount) as total_exc_tax'),
-                        DB::raw('SUM(final_total - (SELECT COALESCE(SUM(IF(tp.is_return = 1, -1*tp.amount, tp.amount)), 0) FROM transaction_payments as tp WHERE tp.transaction_id = transactions.id) )  as total_due'),
+                        DB::raw('SUM(GREATEST(final_total - (SELECT COALESCE(SUM(IF(tp.is_return = 1, -1*tp.amount, tp.amount)), 0) FROM transaction_payments as tp WHERE tp.transaction_id = transactions.id), 0)) as total_due'),
                         DB::raw('SUM(total_before_tax) as total_before_tax'),
                         DB::raw('SUM(shipping_charges) as total_shipping_charges'),
                         DB::raw('SUM(additional_expense_value_1 + additional_expense_value_2 + additional_expense_value_3 + additional_expense_value_4) as total_expense')
@@ -4168,7 +4168,7 @@ class TransactionUtil extends Util
 
         $credit_details = $query->select(
             DB::raw("SUM(IF(t.status = 'final' AND t.type = 'sell', final_total, 0)) as total_invoice"),
-            DB::raw("SUM(IF(t.status = 'final' AND t.type = 'sell', (SELECT SUM(IF(is_return = 1,-1*amount,amount)) FROM transaction_payments WHERE transaction_payments.transaction_id=t.id), 0)) as invoice_paid")
+            DB::raw("SUM(IF(t.status = 'final' AND t.type = 'sell', LEAST(t.final_total, COALESCE((SELECT SUM(IF(is_return = 1,-1*amount,amount)) FROM transaction_payments WHERE transaction_payments.transaction_id=t.id), 0)), 0)) as invoice_paid")
         )->first();
 
         $total_invoice = ! empty($credit_details->total_invoice) ? $credit_details->total_invoice : 0;
@@ -5278,7 +5278,7 @@ class TransactionUtil extends Util
 
             if ($format == 'format_2' || $format == 'format_4') {
                 $temp_array['final_total'] = $transaction->final_total;
-                $temp_array['total_due'] = $transaction->final_total - $transaction->total_paid;
+                $temp_array['total_due'] = max(0, $transaction->final_total - $transaction->total_paid);
                 $temp_array['due_date'] = $transaction->due_date;
                 $temp_array['payment_status'] = $transaction->payment_status;
                 $temp_array['total_paid'] = $transaction->total_paid;
@@ -5406,7 +5406,9 @@ class TransactionUtil extends Util
 
         $total_transactions_paid = $total_invoice_paid + $total_purchase_paid - $total_sell_return_paid - $total_purchase_return_paid;
 
-        $curr_due = $total_invoice + $total_purchase - $total_transactions_paid + $beginning_balance + $opening_balance_due;
+        // Balance due is an as-of value. Cap payments at each sale total so a POS
+        // overpayment remains advance and cannot offset another invoice's due.
+        $curr_due = $this->getLedgerBalanceDueAsOf($contact_id, $business_id, $end, $location_id) + $ledger_discount;
 
         //Sort by date
         if (! empty($ledger)) {
@@ -5502,7 +5504,7 @@ class TransactionUtil extends Util
         $total_overall_paid_customer = $overall_total_invoice_paid - $overall_total_sell_return_paid + $overall_total_ob_paid; //Add '+ $overall_total_advance_payment'
 
         $total_overall_paid_supplier = $overall_total_purchase_paid - $overall_total_purchase_return_paid;
-        $overall_due = $total_overall_invoice + $total_overall_purchase - $total_overall_paid_customer - $total_overall_paid_supplier;
+        $overall_due = $this->getLedgerBalanceDueAsOf($contact_id, $business_id, null, $location_id);
 
         $output = [
             'ledger' => $ledger,
@@ -5526,6 +5528,63 @@ class TransactionUtil extends Util
         ];
 
         return $output;
+    }
+
+    /**
+     * Get contact balance due at a point in time without treating sale
+     * overpayments as negative due.
+     */
+    private function getLedgerBalanceDueAsOf($contact_id, $business_id, $end = null, $location_id = null)
+    {
+        $payment_date_clause = '';
+        $bindings = [];
+        if (! empty($end)) {
+            $payment_date_clause = ' AND DATE(tp.paid_on) <= ?';
+            $bindings = array_fill(0, 5, $end);
+        }
+
+        $query = Transaction::from('transactions as t')
+            ->where('t.contact_id', $contact_id)
+            ->where('t.business_id', $business_id)
+            ->where('t.status', '!=', 'draft')
+            ->whereIn('t.type', array_keys(Transaction::transactionTypes()));
+
+        if (! empty($end)) {
+            $query->whereDate('t.transaction_date', '<=', $end);
+        }
+
+        if (! empty($location_id)) {
+            $query->where('t.location_id', $location_id);
+        }
+
+        $totals = $query->selectRaw(
+            "COALESCE(SUM(IF(t.type = 'sell' AND t.status = 'final', t.final_total, 0)), 0) as total_invoice,
+            COALESCE(SUM(IF(t.type = 'purchase', t.final_total, 0)), 0) as total_purchase,
+            COALESCE(SUM(IF(t.type = 'sell_return', t.final_total, 0)), 0) as total_sell_return,
+            COALESCE(SUM(IF(t.type = 'purchase_return', t.final_total, 0)), 0) as total_purchase_return,
+            COALESCE(SUM(IF(t.type = 'opening_balance', t.final_total, 0)), 0) as opening_balance,
+            COALESCE(SUM(IF(t.type = 'ledger_discount', t.final_total, 0)), 0) as ledger_discount,
+            COALESCE(SUM(IF(t.type = 'sell' AND t.status = 'final', LEAST(t.final_total, COALESCE((SELECT SUM(IF(tp.is_return = 1, -tp.amount, tp.amount)) FROM transaction_payments as tp WHERE tp.transaction_id = t.id{$payment_date_clause}), 0)), 0)), 0) as invoice_paid,
+            COALESCE(SUM(IF(t.type = 'purchase', COALESCE((SELECT SUM(tp.amount) FROM transaction_payments as tp WHERE tp.transaction_id = t.id{$payment_date_clause}), 0), 0)), 0) as purchase_paid,
+            COALESCE(SUM(IF(t.type = 'sell_return', COALESCE((SELECT SUM(tp.amount) FROM transaction_payments as tp WHERE tp.transaction_id = t.id{$payment_date_clause}), 0), 0)), 0) as sell_return_paid,
+            COALESCE(SUM(IF(t.type = 'purchase_return', COALESCE((SELECT SUM(tp.amount) FROM transaction_payments as tp WHERE tp.transaction_id = t.id{$payment_date_clause}), 0), 0)), 0) as purchase_return_paid,
+            COALESCE(SUM(IF(t.type = 'opening_balance', COALESCE((SELECT SUM(tp.amount) FROM transaction_payments as tp WHERE tp.transaction_id = t.id{$payment_date_clause}), 0), 0)), 0) as opening_balance_paid",
+            $bindings
+        )->first();
+
+        $due = $totals->total_invoice
+            + $totals->total_purchase
+            - $totals->total_sell_return
+            - $totals->total_purchase_return
+            + $totals->opening_balance
+            - $totals->ledger_discount
+            - $totals->invoice_paid
+            - $totals->purchase_paid
+            + $totals->sell_return_paid
+            + $totals->purchase_return_paid
+            - $totals->opening_balance_paid;
+
+        return max(0, $due);
     }
 
     /**

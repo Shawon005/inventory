@@ -464,7 +464,7 @@ class TransactionPaymentController extends Controller
             } elseif ($due_payment_type == 'sell') {
                 $query->select(
                     DB::raw("SUM(IF(t.type = 'sell' AND t.status = 'final', final_total, 0)) as total_invoice"),
-                    DB::raw("SUM(IF(t.type = 'sell' AND t.status = 'final', (SELECT SUM(IF(is_return = 1,-1*amount,amount)) FROM transaction_payments WHERE transaction_payments.transaction_id=t.id), 0)) as total_paid"),
+                    DB::raw("SUM(IF(t.type = 'sell' AND t.status = 'final', LEAST(t.final_total, COALESCE((SELECT SUM(IF(is_return = 1,-1*amount,amount)) FROM transaction_payments WHERE transaction_payments.transaction_id=t.id), 0)), 0)) as total_paid"),
                     'contacts.name',
                     'contacts.supplier_business_name',
                     'contacts.id as contact_id'
@@ -489,16 +489,16 @@ class TransactionPaymentController extends Controller
             $payment_line = new TransactionPayment();
             if ($due_payment_type == 'purchase') {
                 $contact_details->total_purchase = empty($contact_details->total_purchase) ? 0 : $contact_details->total_purchase;
-                $payment_line->amount = $contact_details->total_purchase -
-                                    $contact_details->total_paid;
+                $payment_line->amount = max(0, $contact_details->total_purchase -
+                                    $contact_details->total_paid);
             } elseif ($due_payment_type == 'purchase_return') {
                 $payment_line->amount = $contact_details->total_purchase_return -
                                     $contact_details->total_return_paid;
             } elseif ($due_payment_type == 'sell') {
                 $contact_details->total_invoice = empty($contact_details->total_invoice) ? 0 : $contact_details->total_invoice;
 
-                $payment_line->amount = $contact_details->total_invoice -
-                                    $contact_details->total_paid;
+                $payment_line->amount = max(0, $contact_details->total_invoice -
+                                    $contact_details->total_paid);
             } elseif ($due_payment_type == 'sell_return') {
                 $payment_line->amount = $contact_details->total_sell_return -
                                     $contact_details->total_return_paid;
@@ -507,7 +507,7 @@ class TransactionPaymentController extends Controller
             //If opening balance due exists add to payment amount
             $contact_details->opening_balance = ! empty($contact_details->opening_balance) ? $contact_details->opening_balance : 0;
             $contact_details->opening_balance_paid = ! empty($contact_details->opening_balance_paid) ? $contact_details->opening_balance_paid : 0;
-            $ob_due = $contact_details->opening_balance - $contact_details->opening_balance_paid;
+            $ob_due = max(0, $contact_details->opening_balance - $contact_details->opening_balance_paid);
             if ($ob_due > 0) {
                 $payment_line->amount += $ob_due;
             }

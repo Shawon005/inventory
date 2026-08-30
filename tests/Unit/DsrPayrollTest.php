@@ -38,9 +38,12 @@ class DsrPayrollTest extends TestCase
         $this->assertSame(25000.0, $payroll['net_payable']);
     }
 
-    public function test_changed_distribution_views_compile_to_valid_php(): void
+    public function test_changed_contact_and_distribution_views_compile_to_valid_php(): void
     {
         $files = [
+            'resources/views/contact/create.blade.php',
+            'resources/views/contact/edit.blade.php',
+            'resources/views/contact/index.blade.php',
             'resources/views/distribution/customers/index.blade.php',
             'resources/views/distribution/customers/create.blade.php',
             'resources/views/distribution/customers/edit.blade.php',

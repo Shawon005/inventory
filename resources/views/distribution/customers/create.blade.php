@@ -36,10 +36,10 @@
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label>Existing Contact* </label>
+                            <label>Existing Dealer</label>
                             {!! Form::select('existing_contact', [], null, ['class' => 'form-control select2', 'id' => 'existing_contact', 'placeholder' => 'Search contact by name / phone']) !!}
                             {!! Form::hidden('contact_id', null, ['id' => 'contact_id']) !!}
-                            <p class="help-block">Select an existing contact to autofill details. If left empty a new customer will be created.</p>
+                            <p class="help-block">Only dealers are shown. Normal sale customers cannot be linked to SR stock or distribution.</p>
                         </div>
                     </div>
                 @endif
@@ -242,6 +242,7 @@ $(document).ready(function(){
                 console.log('Search term:', params.term);
                 return { 
                     q: params.term || '',
+                    dealer_only: 1,
                     _token: $('meta[name="csrf-token"]').attr('content')
                 };
             },
