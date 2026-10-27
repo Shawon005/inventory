@@ -42,7 +42,7 @@ class CustomerStockTransferService
             $vld = VariationLocationDetails::where('variation_id', $variationId)
                 ->where('product_id', $productId)
                 ->where('location_id', $locationId)
-                ->first();
+                ->lockForUpdate()->first();
 
             if (! $vld || $vld->qty_available < $quantity) {
                 throw new \Exception('Insufficient stock in main inventory. Available: '.($vld->qty_available ?? 0));
@@ -122,7 +122,7 @@ class CustomerStockTransferService
             $vld = VariationLocationDetails::where('variation_id', $variationId)
                 ->where('product_id', $productId)
                 ->where('location_id', $locationId)
-                ->firstOrFail();
+                ->lockForUpdate()->firstOrFail();
 
             $vld->increment('qty_available', $quantity);
 

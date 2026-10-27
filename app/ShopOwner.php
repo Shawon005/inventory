@@ -9,6 +9,16 @@ class ShopOwner extends Model
 {
     use HasFactory;
 
+    public const VISIT_DAYS = [
+        'sunday' => 'Sunday',
+        'monday' => 'Monday',
+        'tuesday' => 'Tuesday',
+        'wednesday' => 'Wednesday',
+        'thursday' => 'Thursday',
+        'friday' => 'Friday',
+        'saturday' => 'Saturday',
+    ];
+
     /**
      * The attributes that aren't mass assignable.
      *

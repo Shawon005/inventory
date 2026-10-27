@@ -36,6 +36,30 @@ class Transaction extends Model
      */
     protected $table = 'transactions';
 
+    protected static function booted()
+    {
+        static::addGlobalScope('retail_channel', fn ($q) => \App\Support\InventoryChannel::retailTransactions($q));
+        $protectB2b = function (self $transaction) {
+            if ($transaction->getRawOriginal('sales_channel') === 'b2b' ||
+                (\App\Support\InventoryChannel::installed() && \Illuminate\Support\Facades\DB::table('b2b_transfers')->where('in_transaction_id', $transaction->id)->exists())) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['transaction' => 'Use the dedicated B2B workflow to change this document.']);
+            }
+        };
+        static::updating($protectB2b);
+        static::deleting($protectB2b);
+        static::updating(function (self $transaction) {
+            if ($transaction->isDirty(['status', 'type', 'location_id']) && \App\Support\InventoryChannel::installed() &&
+                \Illuminate\Support\Facades\DB::table('purchase_lines as p')->join('b2b_transfer_layers as b', 'b.source_purchase_line_id', '=', 'p.id')->where('p.transaction_id', $transaction->id)->exists()) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['purchase' => 'A B2B transfer uses this purchase. Its status, type and warehouse must be preserved.']);
+            }
+            if ($transaction->isDirty(['status', 'type', 'location_id']) &&
+                \Illuminate\Support\Facades\Schema::hasTable('mfg_material_issue_lines') &&
+                \Illuminate\Support\Facades\DB::table('purchase_lines')->where('transaction_id', $transaction->id)->where('mfg_quantity_used', '>', 0)->exists()) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['purchase' => 'Reverse dependent production before changing the status, type or warehouse of a consumed purchase.']);
+            }
+        });
+    }
+
     public function purchase_lines()
     {
         return $this->hasMany(\App\PurchaseLine::class);

@@ -142,7 +142,11 @@ class CustomerController extends Controller
         }
         $customers = $customersQuery->get();
 
-        return view('distribution.customers.create', compact('customers', 'employeeType', 'isDsr'));
+        $selectedDealer = ! $isDsr && old('contact_id')
+            ? \App\Contact::where('business_id', $business_id)->dealers()->find(old('contact_id'))
+            : null;
+
+        return view('distribution.customers.create', compact('customers', 'employeeType', 'isDsr', 'selectedDealer'));
     }
 
     // public function store(Request $request)
@@ -190,14 +194,15 @@ class CustomerController extends Controller
 
         $request->validate([
             'employee_type' => ['required', Rule::in([Customer::TYPE_SR, Customer::TYPE_DSR])],
-            'name' => $isDsr ? 'required|string|max:255' : 'required_without:contact_id|string|max:255',
-            'phone' => $isDsr ? 'nullable|string|max:50' : 'required_without:contact_id|string|max:50',
-            'email' => $isDsr ? 'nullable' : 'required_without:contact_id|email|unique:customers,email',
+            'name' => 'required|string|max:255',
+            'phone' => $isDsr ? 'nullable|string|max:50' : 'required|string|max:50',
+            'email' => $isDsr ? 'nullable' : 'required|email|unique:customers,email',
             'password' => $isDsr ? 'nullable' : 'required|min:6|confirmed',
             'address' => 'nullable|string',
             'status' => 'in:active,inactive',
             'contact_id' => [
-                'nullable',
+                $isDsr ? 'nullable' : 'required',
+                'integer',
                 Rule::exists('contacts', 'id')->where(function ($query) use ($business_id) {
                     $query->where('business_id', $business_id)
                         ->where('is_dealer', true)
@@ -227,12 +232,6 @@ class CustomerController extends Controller
                 }),
                 Rule::unique('customers', 'assigned_sr_customer_id'),
             ] : ['nullable'],
-            'stock_owner_customer_id' => [
-                'nullable',
-                Rule::exists('customers', 'id')->where(function ($query) use ($business_id) {
-                    $query->where('business_id', $business_id);
-                }),
-            ],
             'day_locations' => 'nullable|array',
             'day_locations.*.location_name' => 'nullable|string|max:255',
             'day_locations.*.latitude' => 'nullable|numeric|between:-90,90',
@@ -260,23 +259,12 @@ class CustomerController extends Controller
             'tada_bill_amount' => $employeeType === Customer::TYPE_DSR ? 0 : ($request->tada_bill_amount ?? 0),
             'monthly_target_amount' => $employeeType === Customer::TYPE_DSR ? 0 : ($request->monthly_target_amount ?? 0),
             'commission_percent' => $employeeType === Customer::TYPE_DSR ? 0 : ($request->commission_percent ?? 0),
-            'stock_owner_customer_id' => ! $isDsr && $request->filled('stock_owner_customer_id') ? $request->stock_owner_customer_id : null,
+            'stock_owner_customer_id' => null,
+            'contact_id' => $isDsr ? null : $request->contact_id,
+            'name' => $request->name,
+            'phone' => $request->phone,
+            'email' => $isDsr ? null : $request->email,
         ];
-
-        if (! $isDsr && $request->filled('contact_id')) {
-            $contact = \App\Contact::where('business_id', $business_id)
-                ->dealers()
-                ->findOrFail($request->contact_id);
-           
-            $data['contact_id'] = $contact->id;
-            $data['name'] = $contact->name==''?$contact->supplier_business_name:$contact->name;
-            $data['phone'] = $contact->mobile ?? $request->phone;
-            $data['email'] = $contact->email ?? $request->email;
-        } else {
-            $data['name'] = $request->name;
-            $data['phone'] = $request->phone;
-            $data['email'] = $isDsr ? null : $request->email;
-        }
 
         $newProfileImage = null;
         if ($request->hasFile('profile_image')) {
@@ -286,6 +274,20 @@ class CustomerController extends Controller
 
         try {
             DB::beginTransaction();
+            if (! $isDsr) {
+                // Serialize SR creation for a dealer so every SR shares one stock account.
+                \App\Contact::where('business_id', $business_id)
+                    ->dealers()
+                    ->whereIn('type', ['customer', 'both'])
+                    ->lockForUpdate()
+                    ->findOrFail($request->contact_id);
+
+                $data['stock_owner_customer_id'] = Customer::where('business_id', $business_id)
+                    ->salesRepresentatives()
+                    ->where('contact_id', $request->contact_id)
+                    ->orderBy('id')
+                    ->value('id');
+            }
             $customer = $this->customerRepository->create($data);
             if ($customer->uses_attendance) {
                 $this->syncDayLocations($customer, (array) $request->input('day_locations', []));
@@ -522,12 +524,6 @@ class CustomerController extends Controller
                 }),
                 Rule::unique('customers', 'assigned_sr_customer_id')->ignore($id),
             ] : ['nullable'],
-            'stock_owner_customer_id' => [
-                'nullable',
-                Rule::exists('customers', 'id')->where(function ($query) use ($business_id) {
-                    $query->where('business_id', $business_id);
-                }),
-            ],
             'day_locations' => 'nullable|array',
             'day_locations.*.location_name' => 'nullable|string|max:255',
             'day_locations.*.latitude' => 'nullable|numeric|between:-90,90',
@@ -556,7 +552,7 @@ class CustomerController extends Controller
             'tada_bill_amount' => $isDsr ? 0 : ($request->tada_bill_amount ?? 0),
             'monthly_target_amount' => $isDsr ? 0 : ($request->monthly_target_amount ?? 0),
             'commission_percent' => $isDsr ? 0 : ($request->commission_percent ?? 0),
-            'stock_owner_customer_id' => ! $isDsr && $request->filled('stock_owner_customer_id') ? $request->stock_owner_customer_id : null,
+            'stock_owner_customer_id' => $isDsr ? null : $customer->stock_owner_customer_id,
         ];
 
         if (! $isDsr && $request->filled('password')) {

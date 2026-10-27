@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Distribution;
 
+use App\Contact;
 use App\Customer;
 use App\CustomerSale;
 use App\Http\Controllers\Controller;
@@ -17,8 +18,17 @@ class ShopOwnerController extends Controller
         $this->authorizeView();
         $businessId = (int) $request->session()->get('user.business_id');
 
-        $owners = ShopOwner::query()
-            ->whereHas('distributor', fn ($query) => $query->where('business_id', $businessId))
+        $ownersQuery = ShopOwner::query()
+            ->whereHas('distributor', fn ($query) => $query->where('business_id', $businessId));
+
+        $roads = (clone $ownersQuery)
+            ->whereNotNull('road_name')
+            ->where('road_name', '<>', '')
+            ->distinct()
+            ->orderBy('road_name')
+            ->pluck('road_name');
+
+        $owners = $ownersQuery
             ->with(['phones', 'distributor'])
             ->withCount('sales')
             ->withSum('sales as sales_total', 'sale_price')
@@ -28,19 +38,39 @@ class ShopOwnerController extends Controller
                     $query->where('name', 'like', "%{$search}%")
                         ->orWhere('email', 'like', "%{$search}%")
                         ->orWhere('address', 'like', "%{$search}%")
+                        ->orWhere('road_name', 'like', "%{$search}%")
                         ->orWhereHas('phones', fn ($query) => $query->where('phone', 'like', "%{$search}%"));
                 });
             })
             ->when($request->filled('distributor_id'), function ($query) use ($request) {
                 $query->where('distributor_id', $request->integer('distributor_id'));
             })
+            ->when($request->filled('dealer_id'), function ($query) use ($request, $businessId) {
+                $query->whereHas('distributor.contact', function ($query) use ($request, $businessId) {
+                    $query->whereKey($request->integer('dealer_id'))
+                        ->where('business_id', $businessId)
+                        ->whereIn('type', ['customer', 'both'])
+                        ->dealers();
+                });
+            })
+            ->when($request->filled('road_name'), function ($query) use ($request) {
+                $query->where('road_name', $request->input('road_name'));
+            })
+            ->when($request->filled('visit_day'), function ($query) use ($request) {
+                $query->where('visit_day', $request->input('visit_day'));
+            })
             ->latest('id')
             ->paginate(20)
             ->appends($request->query());
 
         $distributors = $this->distributors($businessId);
+        $dealers = Contact::where('business_id', $businessId)
+            ->whereIn('type', ['customer', 'both'])
+            ->dealers()
+            ->orderBy('name')
+            ->pluck('name', 'id');
 
-        return view('distribution.shop_owners.index', compact('owners', 'distributors'));
+        return view('distribution.shop_owners.index', compact('owners', 'distributors', 'roads', 'dealers'));
     }
 
     public function create(Request $request)
@@ -170,13 +200,17 @@ class ShopOwnerController extends Controller
                 Rule::exists('customers', 'id')->where(fn ($query) => $query->where('business_id', $businessId)->where('employee_type', Customer::TYPE_SR)),
             ],
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('shop_owners', 'email')->ignore(optional($owner)->id)],
+            'email' => ['nullable', 'email', 'max:255', Rule::unique('shop_owners', 'email')->ignore(optional($owner)->id)],
             'phones' => ['required', 'array', 'min:1', 'max:10'],
             'phones.*' => ['required', 'string', 'distinct', 'max:30', 'regex:/^\+?[0-9\s().-]{7,30}$/'],
             'latitude' => ['required', 'numeric', 'between:-90,90'],
             'longitude' => ['required', 'numeric', 'between:-180,180'],
             'address' => ['required', 'string', 'max:2000'],
+            'road_name' => ['nullable', 'string', 'max:255'],
+            'visit_day' => ['nullable', Rule::in(array_keys(ShopOwner::VISIT_DAYS))],
         ]);
+
+        $validated['email'] = ($validated['email'] ?? null) ?: null;
 
         $validated['phones'] = collect($validated['phones'])
             ->map(fn ($phone) => trim($phone))

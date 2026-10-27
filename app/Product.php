@@ -15,6 +15,21 @@ class Product extends Model
 
     protected $appends = ['image_url'];
 
+    protected static function booted()
+    {
+        static::updating(function (self $product) {
+            if ($product->isDirty(['unit_id', 'type', 'enable_stock', 'business_id']) &&
+                app(\Modules\Manufacturing\Services\ProductReferences::class)->variationIsReferenced($product->variations()->pluck('id'))) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['product' => 'A manufacturing recipe or B2B enrollment references this product. Preserve its unit, structure, stock tracking and business.']);
+            }
+        });
+        static::deleting(function (self $product) {
+            if (app(\Modules\Manufacturing\Services\ProductReferences::class)->variationIsReferenced($product->variations()->pluck('id'))) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['product' => 'Archive products referenced by manufacturing or B2B instead of deleting them.']);
+            }
+        });
+    }
+
     /**
      * The attributes that should be cast to native types.
      *

@@ -97,6 +97,14 @@ class RoleController extends Controller
 
         $module_permissions = $this->moduleUtil->getModuleData('user_permissions');
 
+        if (\Illuminate\Support\Facades\Schema::hasTable('mfg_production_orders')) {
+            $module_permissions['Manufacturing'] = (new \Modules\Manufacturing\Http\Controllers\DataController())->user_permissions();
+        }
+
+        if (\Illuminate\Support\Facades\Schema::hasTable('b2b_sale_details')) {
+            $module_permissions['B2B'] = (new \Modules\B2B\Http\Controllers\DataController())->user_permissions();
+        }
+
         $common_settings = ! empty(session('business.common_settings')) ? session('business.common_settings') : [];
 
         return view('role.create')
@@ -212,7 +220,15 @@ class RoleController extends Controller
 
         $module_permissions = $this->moduleUtil->getModuleData('user_permissions');
 
+        if (\Illuminate\Support\Facades\Schema::hasTable('mfg_production_orders')) {
+            $module_permissions['Manufacturing'] = (new \Modules\Manufacturing\Http\Controllers\DataController())->user_permissions();
+        }
+
         $common_settings = ! empty(session('business.common_settings')) ? session('business.common_settings') : [];
+
+        if (\Illuminate\Support\Facades\Schema::hasTable('b2b_sale_details')) {
+            $module_permissions['B2B'] = (new \Modules\B2B\Http\Controllers\DataController())->user_permissions();
+        }
 
         return view('role.edit')
             ->with(compact('role', 'role_permissions', 'selling_price_groups', 'module_permissions', 'common_settings'));

@@ -1,0 +1,8 @@
+{
+    "name": "B2B",
+    "alias": "b2b",
+    "description": "Allocated wholesale stock and manually priced sales",
+    "priority": 1,
+    "providers": ["Modules\\B2B\\Providers\\B2BServiceProvider"],
+    "files": []
+}

@@ -25,6 +25,8 @@ should also send `Content-Type: application/json`.
   "latitude": 23.8103,
   "longitude": 90.4125,
   "address": "Dhaka, Bangladesh",
+  "road_name": "Mirpur Road",
+  "visit_day": "sunday",
   "created_at": "2026-08-13T12:30:00+00:00"
 }
 ```
@@ -106,12 +108,22 @@ Validation rules:
 | --- | --- |
 | `distributor_id` | Required integer matching an existing distributor in `customers` |
 | `name` | Required string, maximum 255 characters |
-| `email` | Required valid and unique email, maximum 255 characters |
+| `email` | Optional; omit it, send `null`, or send an empty string. If provided, must be a valid and unique email, maximum 255 characters |
 | `phones` | Required array containing 1 to 10 numbers |
 | `phones.*` | Distinct string, 7 to 30 phone characters; digits, spaces, `+`, `-`, `(`, `)`, and `.` are accepted |
 | `latitude` | Required number between -90 and 90 |
 | `longitude` | Required number between -180 and 180 |
 | `address` | Required string, maximum 2,000 characters |
+| `road_name` | Optional string, maximum 255 characters; omitted or blank values are saved as `null` |
+| `visit_day` | Optional weekly visit day: `sunday`, `monday`, `tuesday`, `wednesday`, `thursday`, `friday`, or `saturday`; omitted or blank values are saved as `null` |
+
+Include `"road_name": "Mirpur Road"` and `"visit_day": "sunday"` in the POST body
+to set the same schedule as the website's Road Name and Visit Day fields. Both
+POST and GET responses include `road_name` and `visit_day`. Older clients can
+continue creating shops without these fields.
+
+The database must have migration
+`2026_10_18_000001_add_road_name_and_visit_day_to_shop_owners_table.php` applied.
 
 Success response (`201 Created`):
 
@@ -147,6 +159,9 @@ Validation failure (`422 Unprocessable Entity`):
 
 ## Angular interfaces
 
+Omitted or blank emails are saved as `null` and returned as `"email": null`.
+Multiple shop owners can have no email address.
+
 Create `shop-owner.model.ts`:
 
 ```typescript
@@ -154,23 +169,31 @@ export interface ShopOwner {
   id: number;
   distributor_id: number;
   name: string;
-  email: string;
+  email: string | null;
   phones: string[];
   latitude: number;
   longitude: number;
   address: string;
+  road_name: string | null;
+  visit_day: ShopVisitDay | null;
   created_at: string | null;
 }
 
 export interface CreateShopOwnerRequest {
   distributor_id: number;
   name: string;
-  email: string;
+  email?: string | null;
   phones: string[];
   latitude: number;
   longitude: number;
   address: string;
+  road_name?: string | null;
+  visit_day?: ShopVisitDay | null;
 }
+
+export type ShopVisitDay =
+  | 'sunday' | 'monday' | 'tuesday' | 'wednesday'
+  | 'thursday' | 'friday' | 'saturday';
 
 export interface PaginationMeta {
   current_page: number;

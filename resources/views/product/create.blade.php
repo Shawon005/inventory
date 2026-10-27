@@ -357,6 +357,8 @@
             </div>
         </div>
 
+        @include('manufacturing::product_fields')
+
         <div class="form-group col-sm-12" id="product_form_part">
             @include('product.partials.single_product_form_part', ['profit_percent' => $default_profit_percent])
         </div>
@@ -397,6 +399,7 @@
 @section('javascript')
 
 <script src="{{ asset('js/product.js?v=' . $asset_v) }}"></script>
+<script src="{{ asset('modules/manufacturing/product.js?v=' . $asset_v) }}"></script>
 
 <script type="text/javascript">
     $(document).ready(function() {

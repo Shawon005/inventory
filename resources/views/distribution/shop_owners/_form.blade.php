@@ -25,8 +25,8 @@
 <div class="row">
     <div class="col-md-6">
         <div class="form-group">
-            <label for="email">Email Address <span class="text-danger">*</span></label>
-            <input type="email" name="email" id="email" class="form-control" maxlength="255" required value="{{ old('email', $owner->email ?? '') }}" placeholder="owner@example.com">
+            <label for="email">Email Address <small class="text-muted">(optional)</small></label>
+            <input type="email" name="email" id="email" class="form-control" maxlength="255" value="{{ old('email', $owner->email ?? '') }}" placeholder="owner@example.com">
         </div>
     </div>
     <div class="col-md-6">
@@ -45,6 +45,26 @@
             @endforeach
         </div>
         <small class="text-muted">You can save up to 10 phone numbers.</small>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label for="road_name">Road Name</label>
+            <input type="text" name="road_name" id="road_name" class="form-control" maxlength="255" value="{{ old('road_name', $owner->road_name ?? '') }}" placeholder="e.g. Mirpur Road">
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="form-group">
+            <label for="visit_day">Visit Day</label>
+            <select name="visit_day" id="visit_day" class="form-control">
+                <option value="">Select visit day (optional)</option>
+                @foreach(\App\ShopOwner::VISIT_DAYS as $value => $label)
+                    <option value="{{ $value }}" {{ old('visit_day', $owner->visit_day ?? '') === $value ? 'selected' : '' }}>{{ $label }}</option>
+                @endforeach
+            </select>
+        </div>
     </div>
 </div>
 

@@ -16,6 +16,15 @@ class Variation extends Model
      */
     protected $guarded = ['id'];
 
+    protected static function booted()
+    {
+        static::deleting(function (self $variation) {
+            if (app(\Modules\Manufacturing\Services\ProductReferences::class)->variationIsReferenced([$variation->id])) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['variation' => 'This variation is referenced by manufacturing or B2B and must be retained.']);
+            }
+        });
+    }
+
     /**
      * The attributes that should be cast to native types.
      *

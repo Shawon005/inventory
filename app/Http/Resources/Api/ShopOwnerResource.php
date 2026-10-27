@@ -17,6 +17,8 @@ class ShopOwnerResource extends JsonResource
             'latitude' => $this->latitude,
             'longitude' => $this->longitude,
             'address' => $this->address,
+            'road_name' => $this->road_name,
+            'visit_day' => $this->visit_day,
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

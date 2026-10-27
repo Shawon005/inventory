@@ -7,6 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class BusinessLocation extends Model
 {
+    protected static function booted()
+    {
+        static::addGlobalScope('main_inventory', fn ($q) => \App\Support\InventoryChannel::mainLocations($q, 'business_locations.id'));
+    }
+
     /**
      * The attributes that aren't mass assignable.
      *

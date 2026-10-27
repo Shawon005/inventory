@@ -47,6 +47,7 @@ class ShopOwnerApiTest extends TestCase
             'migrations/2026_08_13_000002_add_distributor_id_to_shop_owners_table.php'
         );
         $this->distributorMigration->up();
+        (require database_path('migrations/2026_10_18_000001_add_road_name_and_visit_day_to_shop_owners_table.php'))->up();
     }
 
     protected function tearDown(): void
@@ -92,6 +93,124 @@ class ShopOwnerApiTest extends TestCase
             'shop_owner_id' => $shopOwner->id,
             'phone' => '01812345678',
         ]);
+    }
+
+    public function test_it_saves_and_returns_the_road_and_every_supported_visit_day(): void
+    {
+        foreach (array_keys(ShopOwner::VISIT_DAYS) as $day) {
+            $response = $this->postJson('/api/shop-owners', [
+                'distributor_id' => 1,
+                'name' => 'Scheduled Shop',
+                'phones' => ['01712345678'],
+                'latitude' => 23.8103,
+                'longitude' => 90.4125,
+                'address' => 'Dhaka',
+                'road_name' => '  Mirpur Road  ',
+                'visit_day' => $day,
+            ]);
+
+            $response->assertCreated()
+                ->assertJsonPath('data.road_name', 'Mirpur Road')
+                ->assertJsonPath('data.visit_day', $day);
+            $this->assertDatabaseHas('shop_owners', [
+                'id' => $response->json('data.id'),
+                'road_name' => 'Mirpur Road',
+                'visit_day' => $day,
+            ]);
+            $this->getJson('/api/shop-owners?distributor_id=1')
+                ->assertOk()
+                ->assertJsonPath('data.0.road_name', 'Mirpur Road')
+                ->assertJsonPath('data.0.visit_day', $day);
+        }
+    }
+
+    public function test_road_and_visit_day_remain_optional_for_existing_clients(): void
+    {
+        $payload = [
+            'distributor_id' => 1,
+            'name' => 'Unscheduled Shop',
+            'phones' => ['01712345678'],
+            'latitude' => 23.8103,
+            'longitude' => 90.4125,
+            'address' => 'Dhaka',
+        ];
+
+        foreach ([[], ['road_name' => null, 'visit_day' => null], ['road_name' => ' ', 'visit_day' => '']] as $schedule) {
+            $response = $this->postJson('/api/shop-owners', array_merge($payload, $schedule));
+            $response->assertCreated()
+                ->assertJsonPath('data.road_name', null)
+                ->assertJsonPath('data.visit_day', null);
+            $this->assertDatabaseHas('shop_owners', [
+                'id' => $response->json('data.id'),
+                'road_name' => null,
+                'visit_day' => null,
+            ]);
+        }
+    }
+
+    public function test_it_rejects_invalid_roads_and_visit_days(): void
+    {
+        $this->postJson('/api/shop-owners', [
+            'distributor_id' => 1,
+            'name' => 'Invalid Shop',
+            'phones' => ['01712345678'],
+            'latitude' => 23.8103,
+            'longitude' => 90.4125,
+            'address' => 'Dhaka',
+            'road_name' => str_repeat('x', 256),
+            'visit_day' => 'someday',
+        ])->assertUnprocessable()->assertJsonValidationErrors(['road_name', 'visit_day']);
+
+        $this->assertDatabaseCount('shop_owners', 0);
+    }
+
+    public function test_it_accepts_missing_null_and_blank_emails_for_multiple_shop_owners(): void
+    {
+        $payload = [
+            'distributor_id' => 1,
+            'name' => 'Shop Without Email',
+            'phones' => ['01712345678'],
+            'latitude' => 23.8103,
+            'longitude' => 90.4125,
+            'address' => 'Dhaka',
+        ];
+
+        foreach ([[], ['email' => null], ['email' => ''], ['email' => '   ']] as $email) {
+            $response = $this->postJson('/api/shop-owners', array_merge($payload, $email));
+
+            $response->assertCreated()
+                ->assertJsonPath('success', true)
+                ->assertJsonPath('data.email', null);
+            $this->assertDatabaseHas('shop_owners', [
+                'id' => $response->json('data.id'),
+                'email' => null,
+            ]);
+        }
+
+        $this->assertDatabaseCount('shop_owners', 4);
+        $this->getJson('/api/shop-owners?distributor_id=1')
+            ->assertOk()
+            ->assertJsonCount(4, 'data')
+            ->assertJsonPath('data.0.email', null);
+    }
+
+    public function test_it_still_rejects_duplicate_non_empty_emails(): void
+    {
+        $payload = [
+            'distributor_id' => 1,
+            'name' => 'Shop With Email',
+            'email' => 'same@example.com',
+            'phones' => ['01712345678'],
+            'latitude' => 23.8103,
+            'longitude' => 90.4125,
+            'address' => 'Dhaka',
+        ];
+
+        $this->postJson('/api/shop-owners', $payload)->assertCreated();
+        $this->postJson('/api/shop-owners', $payload)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('email');
+        $this->assertDatabaseCount('shop_owners', 1);
     }
 
     public function test_it_rejects_invalid_shop_owner_information(): void

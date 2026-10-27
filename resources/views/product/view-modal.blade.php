@@ -172,7 +172,11 @@
 	      		</div>
       		@endif
       	</div>
-      	<div class="modal-footer">
+        @if(auth()->user()->can('manufacturing.view') && \Illuminate\Support\Facades\Schema::hasTable('mfg_production_orders'))
+<div class="modal-body">@include('manufacturing::product_details', ['manufacturing_product_id' => $product->id])</div>
+<script src="{{ asset('modules/manufacturing/product.js?v=' . $asset_v) }}"></script>
+@endif
+<div class="modal-footer">
       		<button type="button" class="tw-dw-btn tw-dw-btn-primary tw-text-white no-print" 
 	        aria-label="Print" 
 	          onclick="$(this).closest('div.modal').printThis();">

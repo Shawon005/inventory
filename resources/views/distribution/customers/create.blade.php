@@ -29,17 +29,9 @@
                 @else
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label>Stock Owner Customer</label>
-                            {!! Form::select('stock_owner_customer_id', $customers->pluck('name', 'id')->prepend('Use this customer as stock owner', ''), null, ['class' => 'form-control select2', 'style' => 'width:100%']) !!}
-                            <small class="help-block">Leave blank to keep stock under this customer. Select a parent customer to share stock across multiple distributors.</small>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label>Existing Dealer</label>
-                            {!! Form::select('existing_contact', [], null, ['class' => 'form-control select2', 'id' => 'existing_contact', 'placeholder' => 'Search contact by name / phone']) !!}
-                            {!! Form::hidden('contact_id', null, ['id' => 'contact_id']) !!}
-                            <p class="help-block">Only dealers are shown. Normal sale customers cannot be linked to SR stock or distribution.</p>
+                            <label for="contact_id">Dealer *</label>
+                            {!! Form::select('contact_id', isset($selectedDealer) ? [$selectedDealer->id => ($selectedDealer->name ?: $selectedDealer->supplier_business_name)] : [], old('contact_id'), ['class' => 'form-control', 'id' => 'contact_id', 'required' => true, 'style' => 'width:100%', 'placeholder' => 'Search dealer by name / phone']) !!}
+                            <p class="help-block">This SR will use the dealer's stock. All SRs assigned to the same dealer share that stock.</p>
                         </div>
                     </div>
                 @endif
@@ -59,6 +51,7 @@
                         <div class="form-group">
                             <label>Email *</label>
                             {!! Form::email('email', null, ['class' => 'form-control', 'required']) !!}
+                            <small class="help-block">Use this SR's own email for login.</small>
                         </div>
                     </div>
                 @endunless
@@ -225,71 +218,33 @@
 @endsection
 @section('javascript')
 <script>
-$(document).ready(function(){
-    console.log('Initializing existing contact selector');
-    
-    // Initialize select2 for existing contact search
-    $('#existing_contact').select2({
+$(document).ready(function () {
+    var dealerSelect = $('#contact_id');
+    if (!dealerSelect.length) {
+        return;
+    }
+
+    dealerSelect.select2({
         ajax: {
-            url: '/contacts/customers',
+            url: '{{ action([\App\Http\Controllers\ContactController::class, 'getCustomers']) }}',
             type: 'GET',
             dataType: 'json',
             delay: 250,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            },
             data: function (params) {
-                console.log('Search term:', params.term);
-                return { 
-                    q: params.term || '',
-                    dealer_only: 1,
-                    _token: $('meta[name="csrf-token"]').attr('content')
-                };
+                return { q: params.term || '', dealer_only: 1 };
             },
-            processResults: function (data, params) {
-                console.log('Response data:', data);
-                if (!Array.isArray(data)) {
-                    data = [];
-                }
+            processResults: function (data) {
                 return {
-                    results: data.map(function(d){
-                        return { 
-                            id: d.id, 
-                            text: d.text || d.name || 'Unknown', 
-                            mobile: d.mobile || '', 
-                            email: d.email || '' 
-                        };
+                    results: (Array.isArray(data) ? data : []).map(function (dealer) {
+                        return { id: dealer.id, text: dealer.text || dealer.name };
                     })
                 };
-            },
-            error: function(error) {
-                console.error('Select2 AJAX error:', error);
             }
         },
-        placeholder: 'Search contact by name / phone',
+        placeholder: 'Search dealer by name / phone',
         minimumInputLength: 1,
         allowClear: true
     });
-
-    // On select, autofill the form fields
-    $('#existing_contact').on('select2:select', function (e) {
-        var data = e.params.data;
-        console.log('Selected contact:', data);
-        $('#contact_id').val(data.id);
-        $('input[name="name"]').val(data.text || '');
-        $('input[name="email"]').val(data.email || '');
-        $('input[name="phone"]').val(data.mobile || '');
-    });
-
-    // On clear, empty the form fields
-    $('#existing_contact').on('select2:clear', function () {
-        console.log('Cleared selection');
-        $('#contact_id').val('');
-        $('input[name="name"]').val('');
-        $('input[name="email"]').val('');
-        $('input[name="phone"]').val('');
-    });
 });
 </script>
-
 @endsection

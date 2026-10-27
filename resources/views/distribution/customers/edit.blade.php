@@ -32,9 +32,9 @@
                 @else
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label>Stock Owner Customer</label>
-                            {!! Form::select('stock_owner_customer_id', $customers->pluck('name', 'id')->prepend('Use this customer as stock owner', ''), $customer->stock_owner_customer_id, ['class' => 'form-control select2', 'style' => 'width:100%']) !!}
-                            <small class="help-block">Select the main customer whose stock should be shared with this distributor.</small>
+                            <label>Dealer</label>
+                            <p class="form-control-static">{{ optional($customer->contact)->name ?: (optional($customer->contact)->supplier_business_name ?: 'No dealer assigned') }}</p>
+                            <small class="help-block">All SRs assigned to this dealer share the dealer's stock.</small>
                         </div>
                     </div>
                 @endif

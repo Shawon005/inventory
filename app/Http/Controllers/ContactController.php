@@ -889,10 +889,11 @@ class ContactController extends Controller
                 $business_id = request()->user()->business_id;
 
                 //Check if any transaction related to this contact exists
-                $count = Transaction::where('business_id', $business_id)
+                $count = Transaction::withoutGlobalScope('retail_channel')->where('business_id', $business_id)
                                     ->where('contact_id', $id)
                                     ->count();
-                if ($count == 0) {
+                $b2bEnrolled = \App\Support\InventoryChannel::installed() && DB::table('b2b_customer_profiles')->where('business_id', $business_id)->where('contact_id', $id)->exists();
+                if ($count == 0 && ! $b2bEnrolled) {
                     $contact = Contact::where('business_id', $business_id)->findOrFail($id);
                     if (! $contact->is_default) {
                         $log_properities = [

@@ -3326,7 +3326,7 @@ class TransactionUtil extends Util
                 'PL.quantity_returned as quantity_returned',
                 'PL.mfg_quantity_used as mfg_quantity_used',
                 'transactions.invoice_no'
-                    )->get();
+                    )->lockForUpdate()->get();
 
             $purchase_sell_map = [];
 
@@ -5543,7 +5543,7 @@ class TransactionUtil extends Util
             $bindings = array_fill(0, 5, $end);
         }
 
-        $query = Transaction::from('transactions as t')
+        $query = Transaction::withoutGlobalScope('retail_channel')->from('transactions as t')
             ->where('t.contact_id', $contact_id)
             ->where('t.business_id', $business_id)
             ->where('t.status', '!=', 'draft')
@@ -5595,7 +5595,8 @@ class TransactionUtil extends Util
         $business_id = request()->session()->get('user.business_id');
         $transaction_type_keys = array_keys(Transaction::transactionTypes());
 
-        $query = Transaction::where('transactions.contact_id', $contact_id)
+        $query = Transaction::withoutGlobalScope('retail_channel')
+                        ->where('transactions.contact_id', $contact_id)
                         ->where('transactions.business_id', $business_id)
                         ->where('transactions.status', '!=', 'draft')
                         ->whereIn('transactions.type', $transaction_type_keys);
@@ -5627,7 +5628,7 @@ class TransactionUtil extends Util
     {
         $business_id = request()->session()->get('user.business_id');
 
-        $query = TransactionPayment::leftJoin(
+        $query = TransactionPayment::withoutGlobalScope('retail_channel')->leftJoin(
             'transactions as t',
             'transaction_payments.transaction_id',
             '=',
@@ -5635,6 +5636,10 @@ class TransactionUtil extends Util
         )
             ->leftJoin('business_locations as bl', 't.location_id', '=', 'bl.id')
             ->where('transaction_payments.payment_for', $contact_id)
+            ->where(function ($query) use ($business_id) {
+                $query->where('t.business_id', $business_id)
+                      ->orWhereNull('transaction_payments.transaction_id');
+            })
             // use to not diaplay expense in payment list in ledger
             ->where(function ($query) {
                 $query->where('t.type', '!=', 'expense')

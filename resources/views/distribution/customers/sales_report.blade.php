@@ -99,7 +99,7 @@
             <tr>
                 <td>
                     <span class="label-text">Distributor Name:</span>
-                    {{ optional($customer->stockOwner)->name ?? optional($customer->business)->name ?? '-' }}
+                    {{ optional($customer->contact)->name ?: (optional($customer->contact)->supplier_business_name ?: (optional($customer->business)->name ?? '-')) }}
                 </td>
                 <td><span class="label-text">Achieved:</span> {{ number_format($achievedAmount, 2) }}</td>
             </tr>

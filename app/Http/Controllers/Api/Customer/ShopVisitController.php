@@ -4,14 +4,79 @@ namespace App\Http\Controllers\Api\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\StoreShopVisitRequest;
+use App\Http\Resources\Api\ShopOwnerResource;
 use App\Services\CustomerShopVisitService;
+use App\ShopOwner;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class ShopVisitController extends Controller
 {
     public function __construct(
         protected CustomerShopVisitService $visitService
     ) {}
+
+    public function index(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'date' => ['nullable', 'date_format:Y-m-d'],
+            'per_page' => ['nullable', 'integer', 'between:1,100'],
+            'page' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $customer = $request->user();
+        $timezone = optional($customer->business)->time_zone ?: config('app.timezone');
+        $date = isset($validated['date'])
+            ? Carbon::parse($validated['date'], $timezone)
+            : Carbon::now($timezone);
+        $visitDate = $date->toDateString();
+        $visitDay = strtolower($date->englishDayOfWeek);
+        $dailyVisits = function ($query) use ($customer, $visitDate) {
+            $query->where('customer_id', $customer->id)
+                ->where('visit_date', $visitDate);
+        };
+
+        $query = ShopOwner::query()
+            ->where('distributor_id', $customer->id)
+            ->where('visit_day', $visitDay);
+        $visitedCount = (clone $query)->whereHas('visits', $dailyVisits)->count();
+        $shops = $query->with(['phones', 'visits' => $dailyVisits])
+            ->orderBy('road_name')
+            ->orderBy('name')
+            ->orderBy('id')
+            ->paginate($validated['per_page'] ?? 20);
+
+        return response()->json([
+            'success' => true,
+            'data' => $shops->getCollection()->map(function (ShopOwner $shop) use ($request, $timezone) {
+                $visit = $shop->visits->first();
+
+                return array_merge((new ShopOwnerResource($shop))->toArray($request), [
+                    'road_name' => $shop->road_name,
+                    'visit_day' => $shop->visit_day,
+                    'is_visited' => $visit !== null,
+                    'visit_id' => $visit?->id,
+                    'visited_at' => $visit
+                        ? Carbon::parse($visit->getRawOriginal('visited_at'), $timezone)->toIso8601String()
+                        : null,
+                    'distance_meters' => $visit?->distance_meters,
+                ]);
+            }),
+            'meta' => [
+                'date' => $visitDate,
+                'day' => $date->englishDayOfWeek,
+                'visit_day' => $visitDay,
+                'timezone' => $timezone,
+                'current_page' => $shops->currentPage(),
+                'last_page' => $shops->lastPage(),
+                'per_page' => $shops->perPage(),
+                'total' => $shops->total(),
+                'visited' => $visitedCount,
+                'pending' => $shops->total() - $visitedCount,
+            ],
+        ]);
+    }
 
     public function store(StoreShopVisitRequest $request): JsonResponse
     {

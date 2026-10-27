@@ -8,6 +8,21 @@ use Illuminate\Database\Eloquent\Model;
 
 class TransactionPayment extends Model
 {
+    protected static function booted()
+    {
+        $protect = function (self $payment) {
+            if (\App\Support\InventoryChannel::installed() && \Illuminate\Support\Facades\DB::table('transactions')->where('id', $payment->transaction_id)->where('sales_channel', 'b2b')->exists()) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['payment' => 'Use the dedicated B2B payments and returns workflow.']);
+            }
+        };
+        static::updating($protect); static::deleting($protect);
+        static::addGlobalScope('retail_channel', function ($q) {
+            if (\App\Support\InventoryChannel::installed()) {
+                $q->where(fn ($q) => $q->whereNull('transaction_payments.transaction_id')->orWhereNotIn('transaction_payments.transaction_id', \Illuminate\Support\Facades\DB::table('transactions')->where('sales_channel', 'b2b')->select('id')));
+            }
+        });
+    }
+
     /**
      * The attributes that aren't mass assignable.
      *

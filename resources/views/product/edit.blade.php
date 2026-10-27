@@ -14,6 +14,10 @@
         <li><a href="#"><i class="fa fa-dashboard"></i> Level</a></li>
         <li class="active">Here</li>
     </ol> -->
+
+@if(auth()->user()->can('manufacturing.view') && \Illuminate\Support\Facades\Schema::hasTable('mfg_production_orders'))
+    @include('manufacturing::product_details', ['manufacturing_product_id' => $product->id])
+@endif
 </section>
 
 <!-- Main content -->
@@ -361,6 +365,8 @@
               </div>
             </div>
 
+        @include('manufacturing::product_fields')
+
             <div class="form-group col-sm-12" id="product_form_part"></div>
             <input type="hidden" id="variation_counter" value="0">
             <input type="hidden" id="default_profit_percent" value="{{ $default_profit_percent }}">
@@ -395,6 +401,7 @@
 
 @section('javascript')
   <script src="{{ asset('js/product.js?v=' . $asset_v) }}"></script>
+<script src="{{ asset('modules/manufacturing/product.js?v=' . $asset_v) }}"></script>
   <script type="text/javascript">
     $(document).ready( function(){
       __page_leave_confirmation('#product_add_form');

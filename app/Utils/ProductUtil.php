@@ -350,37 +350,17 @@ class ProductUtil extends Util
     public function updateProductQuantity($location_id, $product_id, $variation_id, $new_quantity, $old_quantity = 0, $number_format = null, $uf_data = true)
     {
         if ($uf_data) {
-            $qty_difference = $this->num_uf($new_quantity, $number_format) - $this->num_uf($old_quantity, $number_format);
+            $qty_difference = \App\Support\Decimal::sub(\App\Support\Decimal::legacy($this->num_uf($new_quantity, $number_format)), \App\Support\Decimal::legacy($this->num_uf($old_quantity, $number_format)));
         } else {
-            $qty_difference = $new_quantity - $old_quantity;
+            $qty_difference = \App\Support\Decimal::sub(\App\Support\Decimal::legacy($new_quantity), \App\Support\Decimal::legacy($old_quantity));
         }
 
         $product = Product::find($product_id);
 
         //Check if stock is enabled or not.
         if ($product->enable_stock == 1 && $qty_difference != 0) {
-            $variation = Variation::where('id', $variation_id)
-                            ->where('product_id', $product_id)
-                            ->first();
-
-            //Add quantity in VariationLocationDetails
-            $variation_location_d = VariationLocationDetails::where('variation_id', $variation->id)
-                          ->where('product_id', $product_id)
-                          ->where('product_variation_id', $variation->product_variation_id)
-                          ->where('location_id', $location_id)
-                          ->first();
-
-            if (empty($variation_location_d)) {
-                $variation_location_d = new VariationLocationDetails();
-                $variation_location_d->variation_id = $variation->id;
-                $variation_location_d->product_id = $product_id;
-                $variation_location_d->location_id = $location_id;
-                $variation_location_d->product_variation_id = $variation->product_variation_id;
-                $variation_location_d->qty_available = 0;
-            }
-
-            $variation_location_d->qty_available += $qty_difference;
-            $variation_location_d->save();
+            $settings = json_decode(\App\Business::where('id', $product->business_id)->value('pos_settings') ?? '{}', true);
+            app(\App\Services\InventoryStockService::class)->change((int) $product->business_id, (int) $product_id, (int) $variation_id, (int) $location_id, $qty_difference, ! empty($settings['allow_overselling']));
         }
 
         return true;
@@ -398,31 +378,14 @@ class ProductUtil extends Util
      */
     public function decreaseProductQuantity($product_id, $variation_id, $location_id, $new_quantity, $old_quantity = 0)
     {
-        $qty_difference = $new_quantity - $old_quantity;
+        $qty_difference = \App\Support\Decimal::sub(\App\Support\Decimal::legacy($new_quantity), \App\Support\Decimal::legacy($old_quantity));
 
         $product = Product::find($product_id);
 
         //Check if stock is enabled or not.
         if ($product->enable_stock == 1) {
-            //Decrement Quantity in variations location table
-            $details = VariationLocationDetails::where('variation_id', $variation_id)
-                ->where('product_id', $product_id)
-                ->where('location_id', $location_id)
-                ->first();
-
-            //If location details not exists create new one
-            if (empty($details)) {
-                $variation = Variation::find($variation_id);
-                $details = VariationLocationDetails::create([
-                    'product_id' => $product_id,
-                    'location_id' => $location_id,
-                    'variation_id' => $variation_id,
-                    'product_variation_id' => $variation->product_variation_id,
-                    'qty_available' => 0,
-                ]);
-            }
-
-            $details->decrement('qty_available', $qty_difference);
+            $settings = json_decode(\App\Business::where('id', $product->business_id)->value('pos_settings') ?? '{}', true);
+            app(\App\Services\InventoryStockService::class)->change((int) $product->business_id, (int) $product_id, (int) $variation_id, (int) $location_id, \App\Support\Decimal::sub('0', $qty_difference), ! empty($settings['allow_overselling']));
         }
 
         return true;
@@ -467,7 +430,10 @@ class ProductUtil extends Util
 
         $query = Variation::join('products AS p', 'variations.product_id', '=', 'p.id')
                 ->join('product_variations AS pv', 'variations.product_variation_id', '=', 'pv.id')
-                ->leftjoin('variation_location_details AS vld', 'variations.id', '=', 'vld.variation_id')
+                ->leftjoin('variation_location_details AS vld', function ($join) {
+                    $join->on('variations.id', '=', 'vld.variation_id');
+                    \App\Support\InventoryChannel::mainLocations($join, 'vld.location_id');
+                })
                 ->leftjoin('units', 'p.unit_id', '=', 'units.id')
                 ->leftjoin('units as u', 'p.secondary_unit_id', '=', 'u.id')
                 ->leftjoin('brands', function ($join) {
@@ -1205,27 +1171,40 @@ class ProductUtil extends Util
      */
     public function createOrUpdatePurchaseLines($transaction, $input_data, $currency_details, $enable_product_editing, $before_status = null)
     {
+        return DB::transaction(function () use ($transaction, $input_data, $currency_details, $enable_product_editing, $before_status) {
+            $audit = app(\Modules\Manufacturing\Services\PurchaseInventoryAudit::class);
+            $snapshot = $audit->capture($transaction, $input_data, $before_status);
+            $result = $this->savePurchaseLines($transaction, $input_data, $currency_details, $enable_product_editing, $before_status);
+            $audit->record($transaction, $snapshot, $before_status);
+            return $result;
+        });
+    }
+
+    private function savePurchaseLines($transaction, $input_data, $currency_details, $enable_product_editing, $before_status = null)
+    {
         $updated_purchase_lines = [];
         $updated_purchase_line_ids = [0];
         $exchange_rate = ! empty($transaction->exchange_rate) ? $transaction->exchange_rate : 1;
 
         foreach ($input_data as $data) {
+            $purchase_product = Product::where('business_id', $transaction->business_id)->findOrFail($data['product_id']);
+            Variation::where('product_id', $purchase_product->id)->whereNull('deleted_at')->findOrFail($data['variation_id']);
+            $data['product_unit_id'] = $purchase_product->unit_id;
             $multiplier = 1;
             if (isset($data['sub_unit_id']) && $data['sub_unit_id'] == $data['product_unit_id']) {
                 unset($data['sub_unit_id']);
             }
 
             if (! empty($data['sub_unit_id'])) {
-                $unit = Unit::find($data['sub_unit_id']);
-                $multiplier = ! empty($unit->base_unit_multiplier) ? $unit->base_unit_multiplier : 1;
+                $unit = Unit::where('business_id', $transaction->business_id)->findOrFail($data['sub_unit_id']);
+                $multiplier = app(\Modules\Manufacturing\Services\ManufacturingCatalog::class)->multiplier((int) $transaction->business_id, (int) $unit->id, (int) $purchase_product->unit_id);
             }
-            $new_quantity = $this->num_uf($data['quantity']) * $multiplier;
-
-            $new_quantity_f = $this->num_f($new_quantity);
+            $new_quantity = \App\Support\Decimal::mul(\App\Support\Decimal::localized($data['quantity']), (string) $multiplier);
+            \App\Support\Decimal::positive($new_quantity, 'quantity', true);
             $old_qty = 0;
             //update existing purchase line
             if (isset($data['purchase_line_id'])) {
-                $purchase_line = PurchaseLine::findOrFail($data['purchase_line_id']);
+                $purchase_line = PurchaseLine::where('transaction_id', $transaction->id)->lockForUpdate()->findOrFail($data['purchase_line_id']);
                 $updated_purchase_line_ids[] = $purchase_line->id;
                 $old_qty = $purchase_line->quantity;
 
@@ -1238,16 +1217,15 @@ class ProductUtil extends Util
 
                 //Increase quantity only if status is received
                 if ($transaction->status == 'received') {
-                    $this->updateProductQuantity($transaction->location_id, $data['product_id'], $data['variation_id'], $new_quantity_f, 0, $currency_details);
+                    $this->updateProductQuantity($transaction->location_id, $data['product_id'], $data['variation_id'], $new_quantity, 0, null, false);
                 }
             }
 
             $purchase_line->quantity = $new_quantity;
-            $purchase_line->pp_without_discount = ($this->num_uf($data['pp_without_discount'], $currency_details) * $exchange_rate) / $multiplier;
-            $purchase_line->discount_percent = $this->num_uf($data['discount_percent'], $currency_details);
-            $purchase_line->purchase_price = ($this->num_uf($data['purchase_price'], $currency_details) * $exchange_rate) / $multiplier;
-            $purchase_line->purchase_price_inc_tax = ($this->num_uf($data['purchase_price_inc_tax'], $currency_details) * $exchange_rate) / $multiplier;
-            $purchase_line->item_tax = ($this->num_uf($data['item_tax'], $currency_details) * $exchange_rate) / $multiplier;
+            foreach (['pp_without_discount', 'purchase_price', 'purchase_price_inc_tax', 'item_tax'] as $cost_field) {
+                $purchase_line->$cost_field = \App\Support\Decimal::div(\App\Support\Decimal::mul(\App\Support\Decimal::localized($data[$cost_field], $currency_details), \App\Support\Decimal::legacy($exchange_rate)), (string) $multiplier);
+            }
+            $purchase_line->discount_percent = \App\Support\Decimal::localized($data['discount_percent'], $currency_details);
             $purchase_line->tax_id = $data['purchase_line_tax_id'];
             $purchase_line->lot_number = ! empty($data['lot_number']) ? $data['lot_number'] : null;
             $purchase_line->mfg_date = ! empty($data['mfg_date']) ? $this->uf_date($data['mfg_date']) : null;
@@ -1360,12 +1338,10 @@ class ProductUtil extends Util
      */
     public function updateProductStock($status_before, $transaction, $product_id, $variation_id, $new_quantity, $old_quantity, $currency_details)
     {
-        $new_quantity_f = $this->num_f($new_quantity);
-        $old_qty = $this->num_f($old_quantity);
         //Update quantity for existing products
         if ($status_before == 'received' && $transaction->status == 'received') {
             //if status received update existing quantity
-            $this->updateProductQuantity($transaction->location_id, $product_id, $variation_id, $new_quantity_f, $old_qty, $currency_details);
+            $this->updateProductQuantity($transaction->location_id, $product_id, $variation_id, $new_quantity, $old_quantity, null, false);
         } elseif ($status_before == 'received' && $transaction->status != 'received') {
             //decrease quantity only if status changed from received to not received
             $this->decreaseProductQuantity(
@@ -1375,7 +1351,7 @@ class ProductUtil extends Util
                 $old_quantity
             );
         } elseif ($status_before != 'received' && $transaction->status == 'received') {
-            $this->updateProductQuantity($transaction->location_id, $product_id, $variation_id, $new_quantity_f, 0, $currency_details);
+            $this->updateProductQuantity($transaction->location_id, $product_id, $variation_id, $new_quantity, 0, null, false);
         }
     }
 
@@ -1611,6 +1587,7 @@ class ProductUtil extends Util
                     'variation_location_details AS VLD',
                     function ($join) use ($location_id) {
                         $join->on('variations.id', '=', 'VLD.variation_id');
+                        \App\Support\InventoryChannel::mainLocations($join, 'VLD.location_id');
 
                         //Include Location
                         if (! empty($location_id)) {
@@ -1765,8 +1742,13 @@ class ProductUtil extends Util
                   ->where('p.business_id', $business_id)
                   ->whereIn('p.type', ['single', 'variable']);
 
+        \App\Support\InventoryChannel::mainLocations($query, 'vld.location_id');
+
         $permitted_locations = auth()->user()->permitted_locations();
         $location_filter = '';
+        if (\App\Support\InventoryChannel::installed()) {
+            $location_filter .= ' AND transactions.location_id NOT IN (SELECT stock_location_id FROM b2b_locations) ';
+        }
 
         if ($permitted_locations != 'all') {
             $query->whereIn('vld.location_id', $permitted_locations);
@@ -1811,7 +1793,9 @@ class ProductUtil extends Util
         }
 
         if (isset($filters['only_mfg_products']) && $filters['only_mfg_products'] == 1) {
-            $query->join('mfg_recipes as mr', 'mr.variation_id', '=', 'variations.id');
+            $query->whereExists(function ($bom) {
+                $bom->select(DB::raw(1))->from('mfg_boms as mr')->whereColumn('mr.variation_id', 'variations.id')->where('mr.is_active', 1);
+            });
         }
 
         if (isset($filters['active_state']) && $filters['active_state'] == 'active') {
@@ -2004,7 +1988,8 @@ class ProductUtil extends Util
 
     public function getVariationStockHistory($business_id, $variation_id, $location_id)
     {
-        $stock_history = Transaction::leftjoin('transaction_sell_lines as sl',
+        \App\Support\InventoryChannel::assertLocation((int) $location_id);
+        $stock_history = Transaction::withoutGlobalScope('retail_channel')->leftjoin('transaction_sell_lines as sl',
             'sl.transaction_id', '=', 'transactions.id')
                                 ->leftjoin('purchase_lines as pl',
                                     'pl.transaction_id', '=', 'transactions.id')
@@ -2028,7 +2013,7 @@ class ProductUtil extends Util
                                 ->select(
                                     'transactions.id as transaction_id',
                                     'transactions.type as transaction_type',
-                                    'sl.quantity as sell_line_quantity',
+                                    DB::raw("CASE WHEN transactions.type = 'production_sell' THEN sl.quantity - COALESCE(sl.quantity_returned, 0) ELSE sl.quantity END as sell_line_quantity"),
                                     'pl.quantity as purchase_line_quantity',
                                     'rsl.quantity_returned as sell_return',
                                     'rpl.quantity_returned as purchase_return',
@@ -2256,7 +2241,7 @@ class ProductUtil extends Util
                     LEFT JOIN purchase_lines AS PL ON transactions.id=PL.transaction_id
                     WHERE transactions.status='received' AND transactions.type='production_purchase' AND transactions.location_id=$location_id
                     AND PL.variation_id=variations.id) as total_manufactured"),
-            DB::raw("(SELECT SUM(COALESCE(TSL.quantity, 0)) FROM transactions 
+            DB::raw("(SELECT SUM(COALESCE(TSL.quantity, 0) - COALESCE(TSL.quantity_returned, 0)) FROM transactions
                     LEFT JOIN transaction_sell_lines AS TSL ON transactions.id=TSL.transaction_id
                     WHERE transactions.status='final' AND transactions.type='production_sell' AND transactions.location_id=$location_id 
                     AND TSL.variation_id=variations.id) as total_ingredients_used"),
@@ -2301,6 +2286,11 @@ class ProductUtil extends Util
 
     public function fixVariationStockMisMatch($business_id, $variation_id, $location_id, $stock)
     {
+        if (\Illuminate\Support\Facades\Schema::hasTable('inventory_postings')) {
+            abort_unless(auth()->check() && (int) auth()->user()->business_id === (int) $business_id, 403);
+            app(\Modules\Manufacturing\Services\StockAdjustmentService::class)->reconcile(auth()->user(), (int) $variation_id, (int) $location_id, \App\Support\Decimal::legacy($stock));
+            return;
+        }
         $vld = VariationLocationDetails::join(
             'business_locations as bl',
             'bl.id',

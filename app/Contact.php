@@ -12,6 +12,19 @@ class Contact extends Authenticatable
     use Notifiable;
     use SoftDeletes;
 
+    protected static function booted()
+    {
+        $enrolled = fn (self $contact) => \App\Support\InventoryChannel::installed() && \Illuminate\Support\Facades\DB::table('b2b_customer_profiles')->where('contact_id', $contact->id)->exists();
+        static::deleting(function (self $contact) use ($enrolled) {
+            if ($enrolled($contact)) { throw \Illuminate\Validation\ValidationException::withMessages(['contact' => 'Archive a B2B customer instead of deleting its invoice/payment identity.']); }
+        });
+        static::updating(function (self $contact) use ($enrolled) {
+            if ($enrolled($contact) && ($contact->isDirty('business_id') || ($contact->isDirty('type') && !in_array($contact->type, ['customer', 'both'], true)))) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['contact' => 'Keep this B2B contact in its business with a customer-compatible type.']);
+            }
+        });
+    }
+
     /**
      * The attributes that aren't mass assignable.
      *

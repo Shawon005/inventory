@@ -49,6 +49,7 @@ Route::prefix('customer')->group(function () {
         Route::delete('sale/{id}', [SaleController::class, 'destroy']);
         Route::get('sales-history', [SaleController::class, 'history']);
         Route::post('location/update', [LocationController::class, 'update']);
+        Route::get('shop-visits', [ShopVisitController::class, 'index']);
         Route::post('shop-visits', [ShopVisitController::class, 'store']);
         Route::post('attendance', [AttendanceController::class, 'store']);
         Route::get('attendance/details', [AttendanceController::class, 'details']);

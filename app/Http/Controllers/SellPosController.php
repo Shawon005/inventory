@@ -2089,6 +2089,7 @@ class SellPosController extends Controller
                     'variation_location_details AS VLD',
                     function ($join) use ($location_id) {
                         $join->on('variations.id', '=', 'VLD.variation_id');
+                        \App\Support\InventoryChannel::mainLocations($join, 'VLD.location_id');
 
                         //Include Location
                         if (!empty($location_id)) {

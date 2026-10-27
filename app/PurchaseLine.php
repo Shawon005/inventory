@@ -13,6 +13,13 @@ class PurchaseLine extends Model
      */
     protected $guarded = ['id'];
 
+    protected static function booted()
+    {
+        static::saving(function (self $line) {
+            app(\Modules\Manufacturing\Services\PurchasePolicy::class)->validateLine($line);
+        });
+    }
+
     public function transaction()
     {
         return $this->belongsTo(\App\Transaction::class);

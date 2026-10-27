@@ -954,6 +954,37 @@ class AdminSidebarMenu
             }
         });
 
+        if (auth()->user()->can('manufacturing.view') && \Illuminate\Support\Facades\Schema::hasTable('mfg_production_orders')) {
+            $sidebar = Menu::instance('admin-sidebar-menu');
+            $sidebar->dropdown('Manufacturing', function ($sub) {
+                foreach ([
+                    ['manufacturing.dashboard', 'Dashboard'], ['manufacturing.materials', 'Raw Materials'],
+                    ['manufacturing.components', 'Manufactured Components'], ['manufacturing.boms.index', 'Bill of Materials'],
+                    ['manufacturing.orders.index', 'Production Orders'], ['manufacturing.history', 'Production History'],
+                    ['manufacturing.movements', 'Stock Movements'], ['manufacturing.reports', 'Manufacturing Reports'],
+                ] as [$route, $label]) {
+                    if ($route === 'manufacturing.reports' && ! auth()->user()->can('manufacturing.reports.view')) { continue; }
+                    $sub->url(route($route), $label, ['icon' => '', 'active' => request()->routeIs($route)]);
+                }
+            }, ['icon' => '<i class="fa fa-industry" aria-hidden="true"></i>', 'active' => request()->segment(1) === 'manufacturing'])->order(36);
+        }
+
+        if (\Illuminate\Support\Facades\Schema::hasTable('b2b_sale_details')) {
+            $links = [
+                ['b2b.dashboard', 'Dashboard', 'dashboard.view'], ['b2b.products', 'Products', 'products.manage'],
+                ['b2b.customers', 'Business Customers', 'customers.manage'], ['b2b.inventory', 'B2B Inventory', 'stock.transfer'],
+                ['b2b.transfers', 'Stock Transfers', 'stock.transfer'], ['b2b.pos', 'B2B POS', 'pos.access'],
+                ['b2b.sales', 'Sales & Invoices', 'sales.create'], ['b2b.dues', 'Payments & Dues', 'payments.record'],
+                ['b2b.movements', 'Stock Movements', 'stock.transfer'], ['b2b.reports', 'Reports', 'reports.view'],
+            ];
+            $links = array_filter($links, fn ($link) => auth()->user()->can('b2b.'.$link[2]));
+            if ($links) {
+                Menu::instance('admin-sidebar-menu')->dropdown('B2B Management', function ($sub) use ($links) {
+                    foreach ($links as [$route, $label]) { $sub->url(route($route), $label, ['icon' => '', 'active' => request()->routeIs($route)]); }
+                }, ['icon' => '<i class="fa fa-building" aria-hidden="true"></i>', 'active' => request()->segment(1) === 'b2b'])->order(37);
+            }
+        }
+
         //Add menus from modules
         $moduleUtil = new ModuleUtil;
         $moduleUtil->getModuleData('modifyAdminMenu');

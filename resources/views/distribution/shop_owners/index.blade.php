@@ -48,14 +48,14 @@
         <div class="box-body">
             <form method="GET" action="{{ route('distribution.shop-owners.index') }}">
                 <div class="row">
-                    <div class="col-md-5">
+                    <div class="col-md-4">
                         <label for="search">Search owners</label>
                         <div class="input-group">
                             <span class="input-group-addon"><i class="fa fa-search"></i></span>
-                            <input type="text" class="form-control" id="search" name="search" value="{{ request('search') }}" placeholder="Name, email, phone, or address">
+                            <input type="text" class="form-control" id="search" name="search" value="{{ request('search') }}" placeholder="Name, email, phone, address, or road">
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-2">
                         <label for="distributor_id">Registered by SR</label>
                         <select class="form-control select2" id="distributor_id" name="distributor_id" style="width:100%;">
                             <option value="">All sales representatives</option>
@@ -64,7 +64,36 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-md-3" style="padding-top:25px;">
+                    <div class="col-md-2">
+                        <label for="dealer_id">Dealer</label>
+                        <select class="form-control select2" id="dealer_id" name="dealer_id" style="width:100%;">
+                            <option value="">All dealers</option>
+                            @foreach($dealers as $id => $name)
+                                <option value="{{ $id }}" {{ (string) request('dealer_id') === (string) $id ? 'selected' : '' }}>{{ $name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="road_name">Road Name</label>
+                        <select class="form-control select2" id="road_name" name="road_name" style="width:100%;">
+                            <option value="">All roads</option>
+                            @foreach($roads as $road)
+                                <option value="{{ $road }}" {{ request('road_name') === $road ? 'selected' : '' }}>{{ $road }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="visit_day">Visit Day</label>
+                        <select class="form-control" id="visit_day" name="visit_day">
+                            <option value="">All visit days</option>
+                            @foreach(\App\ShopOwner::VISIT_DAYS as $value => $label)
+                                <option value="{{ $value }}" {{ request('visit_day') === $value ? 'selected' : '' }}>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12" style="padding-top:15px;">
                         <button class="btn btn-primary" type="submit"><i class="fa fa-filter"></i> Apply</button>
                         <a class="btn btn-default" href="{{ route('distribution.shop-owners.index') }}">Reset</a>
                     </div>
@@ -83,6 +112,8 @@
                             <th>Contact</th>
                             <th>Registered By</th>
                             <th>Location</th>
+                            <th>Road Name</th>
+                            <th>Visit Day</th>
                             <th class="text-center">Sale Visits</th>
                             <th class="text-right">Gross Sales</th>
                             <th class="text-right">Actions</th>
@@ -99,10 +130,12 @@
                                 </td>
                                 <td>
                                     <div><i class="fa fa-phone text-muted"></i> {{ optional($owner->phones->first())->phone ?: '-' }}</div>
-                                    <small class="text-muted">{{ $owner->email }}</small>
+                                    <small class="text-muted">{{ $owner->email ?: '-' }}</small>
                                 </td>
                                 <td><strong>{{ optional($owner->distributor)->name ?: '-' }}</strong></td>
                                 <td title="{{ $owner->address }}">{{ \Illuminate\Support\Str::limit($owner->address, 34) }}</td>
+                                <td>{{ $owner->road_name ?: '-' }}</td>
+                                <td>{{ \App\ShopOwner::VISIT_DAYS[$owner->visit_day] ?? '-' }}</td>
                                 <td class="text-center"><span class="label label-info">{{ number_format($owner->sales_count) }}</span></td>
                                 <td class="text-right sales-amount">@format_currency($owner->sales_total ?? 0)</td>
                                 <td class="text-right" style="white-space:nowrap;">
@@ -113,7 +146,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="7"><div class="empty-owners"><i class="fa fa-building-o"></i><strong>No shop owners found</strong><br><span>Owners added from the SR app will appear here automatically.</span></div></td></tr>
+                            <tr><td colspan="9"><div class="empty-owners"><i class="fa fa-building-o"></i><strong>No shop owners found</strong><br><span>Owners added from the SR app will appear here automatically.</span></div></td></tr>
                         @endforelse
                     </tbody>
                 </table>

@@ -75,9 +75,11 @@
             <div class="box profile-box">
                 <div class="box-header"><h3 class="box-title"><i class="fa fa-address-card text-primary"></i> Contact & Territory</h3></div>
                 <div class="box-body">
-                    <div class="info-row"><i class="fa fa-envelope"></i><div><small>Email</small><strong>{{ $owner->email }}</strong></div></div>
+                    <div class="info-row"><i class="fa fa-envelope"></i><div><small>Email</small><strong>{{ $owner->email ?: '-' }}</strong></div></div>
                     <div class="info-row"><i class="fa fa-phone"></i><div><small>Phone Numbers</small><strong>{{ $owner->phones->pluck('phone')->implode(', ') ?: '-' }}</strong></div></div>
                     <div class="info-row"><i class="fa fa-map-marker"></i><div><small>Shop Address</small><strong>{{ $owner->address }}</strong></div></div>
+                    <div class="info-row"><i class="fa fa-road"></i><div><small>Road Name</small><strong>{{ $owner->road_name ?: '-' }}</strong></div></div>
+                    <div class="info-row"><i class="fa fa-calendar"></i><div><small>Visit Day</small><strong>{{ \App\ShopOwner::VISIT_DAYS[$owner->visit_day] ?? '-' }}</strong></div></div>
                     <div class="info-row"><i class="fa fa-map"></i><div><small>Zone</small><strong>{{ optional($zone)->name ?: '-' }}</strong></div></div>
                     <div class="info-row"><i class="fa fa-building"></i><div><small>Business Location</small><strong>{{ optional(optional($zone)->businessLocation)->name ?: '-' }}</strong></div></div>
                     <div class="info-row"><i class="fa fa-crosshairs"></i><div><small>GPS Coordinates</small><strong>{{ number_format($owner->latitude, 6) }}, {{ number_format($owner->longitude, 6) }}</strong><br><a href="https://www.google.com/maps?q={{ $owner->latitude }},{{ $owner->longitude }}" target="_blank" rel="noopener">Open on map <i class="fa fa-external-link"></i></a></div></div>

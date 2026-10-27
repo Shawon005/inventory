@@ -65,10 +65,12 @@ class ShopOwnerController extends Controller
             $shopOwner = ShopOwner::create([
                 'distributor_id' => $data['distributor_id'],
                 'name' => $data['name'],
-                'email' => $data['email'],
+                'email' => $data['email'] ?? null,
                 'latitude' => $data['latitude'],
                 'longitude' => $data['longitude'],
                 'address' => $data['address'],
+                'road_name' => $data['road_name'] ?? null,
+                'visit_day' => $data['visit_day'] ?? null,
             ]);
 
             $shopOwner->phones()->createMany(

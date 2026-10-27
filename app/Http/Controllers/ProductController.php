@@ -82,6 +82,7 @@ class ProductController extends Controller
                 ->leftJoin('tax_rates', 'products.tax', '=', 'tax_rates.id')
                 ->join('variations as v', 'v.product_id', '=', 'products.id')
                 ->leftJoin('variation_location_details as vld', function ($join) use ($permitted_locations) {
+                    \App\Support\InventoryChannel::mainLocations($join, 'vld.location_id');
                     $join->on('vld.variation_id', '=', 'v.id');
                     if ($permitted_locations != 'all') {
                         $join->whereIn('vld.location_id', $permitted_locations);
@@ -136,6 +137,10 @@ class ProductController extends Controller
                 DB::raw('MAX(v.dpp_inc_tax) as max_purchase_price'),
                 DB::raw('MIN(v.dpp_inc_tax) as min_purchase_price')
                 );
+
+            if (\Illuminate\Support\Facades\Schema::hasColumn('products', 'manufacturing_type')) {
+                $products->addSelect('products.manufacturing_type');
+            }
 
             //if woocomerce enabled add field to query
             if ($is_woocommerce) {
@@ -261,6 +266,11 @@ class ProductController extends Controller
 
                     $product = $row->not_for_selling == 1 ? $product.' <span class="label bg-gray">'.__('lang_v1.not_for_selling').
                         '</span>' : $product;
+
+                    if (! empty($row->manufacturing_type) && $row->manufacturing_type !== 'normal') {
+                        $labels = ['raw_material' => 'Raw material', 'component' => 'Manufactured component', 'finished_good' => 'Manufactured finished product'];
+                        $product .= ' <span class="label label-info">'.e($labels[$row->manufacturing_type] ?? $row->manufacturing_type).'</span>';
+                    }
 
                     if ($is_woocommerce && ! $row->woocommerce_disable_sync) {
                         $product = $product.'<br><i class="fab fa-wordpress"></i>';
@@ -444,6 +454,7 @@ class ProductController extends Controller
         if (! auth()->user()->can('product.create')) {
             abort(403, 'Unauthorized action.');
         }
+        app(\Modules\Manufacturing\Services\ProductFormService::class)->validateRequest($request->user(), $request, null, true);
         try {
             $business_id = $request->session()->get('user.business_id');
             $form_fields = ['name', 'brand_id', 'unit_id', 'category_id', 'tax', 'type', 'barcode_type', 'sku', 'alert_quantity', 'tax_type', 'weight', 'product_description', 'sub_unit_ids', 'preparation_time_in_minutes', 'product_custom_field1', 'product_custom_field2', 'product_custom_field3', 'product_custom_field4', 'product_custom_field5', 'product_custom_field6', 'product_custom_field7', 'product_custom_field8', 'product_custom_field9', 'product_custom_field10', 'product_custom_field11', 'product_custom_field12', 'product_custom_field13', 'product_custom_field14', 'product_custom_field15', 'product_custom_field16', 'product_custom_field17', 'product_custom_field18', 'product_custom_field19', 'product_custom_field20',];
@@ -546,6 +557,8 @@ class ProductController extends Controller
                 $this->productUtil->addRackDetails($business_id, $product->id, $product_racks);
             }
 
+            app(\Modules\Manufacturing\Services\ProductFormService::class)->save($request->user(), $product, $request);
+
             //Set Module fields
             if (! empty($request->input('has_module_data'))) {
                 $this->moduleUtil->getModuleData('after_product_saved', ['product' => $product, 'request' => $request]);
@@ -557,6 +570,9 @@ class ProductController extends Controller
             $output = ['success' => 1,
                 'msg' => __('product.product_added_success'),
             ];
+        } catch (\Illuminate\Validation\ValidationException | \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface $e) {
+            DB::rollBack();
+            throw $e;
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::emergency('File:'.$e->getFile().'Line:'.$e->getLine().'Message:'.$e->getMessage());
@@ -677,6 +693,7 @@ class ProductController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
+        app(\Modules\Manufacturing\Services\ProductFormService::class)->validateRequest($request->user(), $request, Product::where('business_id', $request->user()->business_id)->findOrFail($id), true);
         try {
             $business_id = $request->session()->get('user.business_id');
             $product_details = $request->only(['name', 'brand_id', 'unit_id', 'category_id', 'tax', 'barcode_type', 'sku', 'alert_quantity', 'tax_type', 'weight', 'product_description', 'sub_unit_ids', 'preparation_time_in_minutes', 'product_custom_field1', 'product_custom_field2', 'product_custom_field3', 'product_custom_field4', 'product_custom_field5', 'product_custom_field6', 'product_custom_field7', 'product_custom_field8', 'product_custom_field9', 'product_custom_field10', 'product_custom_field11', 'product_custom_field12', 'product_custom_field13', 'product_custom_field14', 'product_custom_field15', 'product_custom_field16', 'product_custom_field17', 'product_custom_field18', 'product_custom_field19', 'product_custom_field20',]);
@@ -868,6 +885,8 @@ class ProductController extends Controller
                 $this->productUtil->updateRackDetails($business_id, $product->id, $product_racks_update);
             }
 
+            app(\Modules\Manufacturing\Services\ProductFormService::class)->save($request->user(), $product, $request);
+
             //Set Module fields
             if (! empty($request->input('has_module_data'))) {
                 $this->moduleUtil->getModuleData('after_product_saved', ['product' => $product, 'request' => $request]);
@@ -879,6 +898,9 @@ class ProductController extends Controller
             $output = ['success' => 1,
                 'msg' => __('product.product_updated_success'),
             ];
+        } catch (\Illuminate\Validation\ValidationException | \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface $e) {
+            DB::rollBack();
+            throw $e;
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::emergency('File:'.$e->getFile().'Line:'.$e->getLine().'Message:'.$e->getMessage());
@@ -2350,13 +2372,9 @@ class ProductController extends Controller
             $stock_details = $this->productUtil->getVariationStockDetails($business_id, $id, request()->input('location_id'));
             $stock_history = $this->productUtil->getVariationStockHistory($business_id, $id, request()->input('location_id'));
 
-            //if mismach found update stock in variation location details
+            // Reading history must never silently overwrite stock or race a production posting.
             if (isset($stock_history[0]) && (float) $stock_details['current_stock'] != (float) $stock_history[0]['stock']) {
-                VariationLocationDetails::where('variation_id',
-                                            $id)
-                                    ->where('location_id', request()->input('location_id'))
-                                    ->update(['qty_available' => $stock_history[0]['stock']]);
-                $stock_details['current_stock'] = $stock_history[0]['stock'];
+                $stock_details['reconciliation_required'] = true;
             }
 
             return view('product.stock_history_details')
